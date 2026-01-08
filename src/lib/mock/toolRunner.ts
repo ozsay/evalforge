@@ -1,0 +1,403 @@
+import { sleep } from "@lib/utils";
+import type {
+  Agent,
+  AgentType,
+  ExpectedFile,
+  TestScenario,
+  SkillVersion,
+} from "@lib/types";
+
+// ==========================================
+// Agent-Specific Characteristics
+// ==========================================
+
+export interface AgentCharacteristics {
+  name: string;
+  speedMultiplier: number; // < 1 = faster, > 1 = slower
+  thoroughnessScore: number; // 0-100, affects success rate
+  fileCompleteness: number; // 0-100, how complete generated files are
+  documentationQuality: number; // 0-100, affects comments/docs
+  errorHandling: number; // 0-100, affects error handling code
+  testCoverage: number; // 0-100, affects test generation
+  codeStyle: "minimal" | "balanced" | "verbose";
+  strengths: string[];
+  weaknesses: string[];
+}
+
+export const AGENT_CHARACTERISTICS: Record<AgentType, AgentCharacteristics> = {
+  claude_code: {
+    name: "Claude Code",
+    speedMultiplier: 1.2, // Slower but more thorough
+    thoroughnessScore: 95,
+    fileCompleteness: 92,
+    documentationQuality: 90,
+    errorHandling: 88,
+    testCoverage: 85,
+    codeStyle: "verbose",
+    strengths: [
+      "Careful reasoning and planning",
+      "Comprehensive error handling",
+      "Well-documented code",
+      "Multi-file refactoring",
+    ],
+    weaknesses: [
+      "Can be slower on simple tasks",
+      "Sometimes over-engineers solutions",
+    ],
+  },
+  codex: {
+    name: "OpenAI Codex CLI",
+    speedMultiplier: 0.6, // Fast
+    thoroughnessScore: 75,
+    fileCompleteness: 70,
+    documentationQuality: 60,
+    errorHandling: 65,
+    testCoverage: 55,
+    codeStyle: "minimal",
+    strengths: [
+      "Very fast code generation",
+      "Good at simple transformations",
+      "Efficient for boilerplate",
+    ],
+    weaknesses: [
+      "May miss edge cases",
+      "Less thorough documentation",
+      "Simpler error handling",
+    ],
+  },
+  cursor_cli: {
+    name: "Cursor CLI",
+    speedMultiplier: 0.9,
+    thoroughnessScore: 85,
+    fileCompleteness: 88,
+    documentationQuality: 75,
+    errorHandling: 80,
+    testCoverage: 70,
+    codeStyle: "balanced",
+    strengths: [
+      "Context-aware edits",
+      "Good codebase understanding",
+      "Intelligent symbol navigation",
+      "Multi-file changes",
+    ],
+    weaknesses: [
+      "Requires good project context",
+      "May struggle with greenfield projects",
+    ],
+  },
+  custom: {
+    name: "Custom Agent",
+    speedMultiplier: 1.0,
+    thoroughnessScore: 80,
+    fileCompleteness: 75,
+    documentationQuality: 70,
+    errorHandling: 70,
+    testCoverage: 65,
+    codeStyle: "balanced",
+    strengths: ["Configurable behavior"],
+    weaknesses: ["Depends on configuration"],
+  },
+};
+
+// ==========================================
+// Agent-Specific Mock Outputs
+// ==========================================
+
+interface AgentMockOutput {
+  prefix: string;
+  suffix: string;
+  codeComments: boolean;
+  includeExplanation: boolean;
+}
+
+const AGENT_OUTPUT_STYLES: Record<AgentType, AgentMockOutput> = {
+  claude_code: {
+    prefix: `I'll carefully analyze this request and implement a solution step by step.
+
+**Planning:**
+1. First, I'll review the requirements
+2. Design the architecture
+3. Implement with proper error handling
+4. Add documentation
+
+**Implementation:**`,
+    suffix: `
+**Summary:**
+I've implemented the solution with:
+- Comprehensive error handling
+- TypeScript types for safety
+- JSDoc comments for documentation
+- Unit test considerations`,
+    codeComments: true,
+    includeExplanation: true,
+  },
+  codex: {
+    prefix: `Here's the implementation:`,
+    suffix: `Done.`,
+    codeComments: false,
+    includeExplanation: false,
+  },
+  cursor_cli: {
+    prefix: `I'll make the following changes to your codebase:
+
+**Files to modify:**`,
+    suffix: `
+Changes applied successfully. The code integrates with your existing patterns.`,
+    codeComments: true,
+    includeExplanation: true,
+  },
+  custom: {
+    prefix: `Executing task...`,
+    suffix: `Task completed.`,
+    codeComments: true,
+    includeExplanation: false,
+  },
+};
+
+// ==========================================
+// Agent Execution Result
+// ==========================================
+
+export interface AgentExecutionResult {
+  agentId: string;
+  agentName: string;
+  agentType: AgentType;
+  output: string;
+  files: ExpectedFile[];
+  success: boolean;
+  duration: number;
+  characteristics: AgentCharacteristics;
+}
+
+// ==========================================
+// Mock Agent Execution
+// ==========================================
+
+function generateAgentSpecificCode(
+  agent: Agent,
+  scenario: TestScenario,
+  baseContent: string
+): string {
+  const chars = AGENT_CHARACTERISTICS[agent.type];
+  const style = AGENT_OUTPUT_STYLES[agent.type];
+
+  let code = baseContent;
+
+  // Add comments based on agent style
+  if (style.codeComments && chars.documentationQuality > 70) {
+    code = `/**
+ * Generated by ${agent.name}
+ * ${scenario.name}
+ */
+${code}`;
+  }
+
+  // Add error handling for thorough agents
+  if (chars.errorHandling > 80 && agent.type === "claude_code") {
+    code = code.replace(
+      /export (const|function)/,
+      `// Error boundary wrapper
+export $1`
+    );
+  }
+
+  return code;
+}
+
+function generateAgentOutput(
+  agent: Agent,
+  _scenario: TestScenario,
+  files: ExpectedFile[]
+): string {
+  const style = AGENT_OUTPUT_STYLES[agent.type];
+  const fileList = files.map((f) => `- \`${f.path}\``).join("\n");
+
+  let output = style.prefix;
+
+  if (style.includeExplanation) {
+    output += `\n\n${fileList}\n`;
+  }
+
+  // Add code blocks for verbose agents
+  if (files.length > 0 && agent.type !== "codex") {
+    const firstFile = files[0];
+    output += `\n\n\`\`\`typescript
+// ${firstFile.path}
+${firstFile.content?.slice(0, 200) || "// Generated code"}${
+      (firstFile.content?.length || 0) > 200 ? "\n// ..." : ""
+    }
+\`\`\``;
+  }
+
+  output += `\n\n${style.suffix}`;
+
+  return output;
+}
+
+function shouldSucceed(agent: Agent, scenario: TestScenario): boolean {
+  const chars = AGENT_CHARACTERISTICS[agent.type];
+  
+  // Base success rate from thoroughness
+  let successRate = chars.thoroughnessScore / 100;
+
+  // Adjust based on scenario complexity (more assertions = more complex)
+  const complexity = Math.min(scenario.assertions.length / 5, 1);
+  successRate -= complexity * 0.15;
+
+  // Agent-specific adjustments
+  if (agent.type === "claude_code") {
+    // Claude Code handles complex scenarios better
+    successRate += complexity * 0.1;
+  } else if (agent.type === "codex") {
+    // Codex struggles more with complex scenarios
+    successRate -= complexity * 0.1;
+  }
+
+  // Clamp between 0.5 and 0.98
+  successRate = Math.max(0.5, Math.min(0.98, successRate));
+
+  return Math.random() < successRate;
+}
+
+export async function executeWithAgent(
+  agent: Agent,
+  _skillVersion: SkillVersion,
+  scenario: TestScenario
+): Promise<AgentExecutionResult> {
+  const chars = AGENT_CHARACTERISTICS[agent.type];
+  
+  // Calculate execution time based on agent speed
+  const baseTime = 800 + Math.random() * 1200;
+  const executionTime = baseTime * chars.speedMultiplier;
+  
+  await sleep(executionTime);
+
+  const success = shouldSucceed(agent, scenario);
+
+  // Generate files based on scenario expectations
+  let files: ExpectedFile[] = [];
+  
+  if (success) {
+    if (scenario.expectedFiles.length > 0) {
+      // Use expected files as base, modify based on agent
+      files = scenario.expectedFiles.map((ef) => ({
+        path: ef.path,
+        content: generateAgentSpecificCode(
+          agent,
+          scenario,
+          ef.content || `// Generated by ${agent.name}\nexport const result = true;`
+        ),
+      }));
+
+      // More thorough agents might add extra files
+      if (chars.fileCompleteness > 85 && Math.random() > 0.5) {
+        files.push({
+          path: "src/index.ts",
+          content: `// Re-exports generated by ${agent.name}\n${files
+            .map((f) => `export * from './${f.path.replace(/^src\//, "").replace(/\.tsx?$/, "")}';`)
+            .join("\n")}`,
+        });
+      }
+    } else {
+      // Generate default files
+      files = [
+        {
+          path: "src/output.ts",
+          content: generateAgentSpecificCode(
+            agent,
+            scenario,
+            `export const result = true;\nexport const generatedBy = "${agent.name}";`
+          ),
+        },
+      ];
+    }
+  } else {
+    // Partial success - generate some files but not all
+    const partialCount = Math.max(1, Math.floor(scenario.expectedFiles.length * 0.5));
+    files = scenario.expectedFiles.slice(0, partialCount).map((ef) => ({
+      path: ef.path,
+      content: ef.content || `// Partial output from ${agent.name}`,
+    }));
+  }
+
+  const output = generateAgentOutput(agent, scenario, files);
+
+  return {
+    agentId: agent.id,
+    agentName: agent.name,
+    agentType: agent.type,
+    output,
+    files,
+    success,
+    duration: executionTime,
+    characteristics: chars,
+  };
+}
+
+// ==========================================
+// Agent Comparison Utilities
+// ==========================================
+
+export function getAgentComparisonInsights(
+  results: AgentExecutionResult[]
+): {
+  fastest: string;
+  mostThorough: string;
+  bestForScenario: string;
+  insights: string[];
+} {
+  if (results.length === 0) {
+    return {
+      fastest: "N/A",
+      mostThorough: "N/A",
+      bestForScenario: "N/A",
+      insights: [],
+    };
+  }
+
+  const fastest = results.reduce((a, b) => (a.duration < b.duration ? a : b));
+  const mostThorough = results.reduce((a, b) =>
+    a.characteristics.thoroughnessScore > b.characteristics.thoroughnessScore ? a : b
+  );
+  const bestForScenario = results.reduce((a, b) =>
+    a.success && !b.success
+      ? a
+      : !a.success && b.success
+      ? b
+      : a.files.length > b.files.length
+      ? a
+      : b
+  );
+
+  const insights: string[] = [];
+
+  // Generate insights
+  const successfulAgents = results.filter((r) => r.success);
+  const failedAgents = results.filter((r) => !r.success);
+
+  if (successfulAgents.length === results.length) {
+    insights.push("All agents completed the scenario successfully");
+  } else if (failedAgents.length > 0) {
+    insights.push(
+      `${failedAgents.map((a) => a.agentName).join(", ")} had issues with this scenario`
+    );
+  }
+
+  const speedDiff =
+    ((Math.max(...results.map((r) => r.duration)) -
+      Math.min(...results.map((r) => r.duration))) /
+      Math.min(...results.map((r) => r.duration))) *
+    100;
+  if (speedDiff > 50) {
+    insights.push(
+      `${fastest.agentName} was ${speedDiff.toFixed(0)}% faster than the slowest agent`
+    );
+  }
+
+  return {
+    fastest: fastest.agentName,
+    mostThorough: mostThorough.agentName,
+    bestForScenario: bestForScenario.agentName,
+    insights,
+  };
+}

@@ -1,0 +1,905 @@
+import { useMemo } from "react";
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { generateId } from "@lib/utils";
+import {
+  Skill,
+  SkillVersion,
+  TestScenario,
+  TestSuite,
+  Assertion,
+  EvalRun,
+  EvalRunResult,
+  Agent,
+  Settings,
+  ModelConfig,
+  CreateSkillInput,
+  UpdateSkillInput,
+  CreateTestScenarioInput,
+  UpdateTestScenarioInput,
+  CreateTestSuiteInput,
+  UpdateTestSuiteInput,
+  CreateAgentInput,
+  UpdateAgentInput,
+  CreateEvalRunInput,
+  Label,
+  DEFAULT_LABELS,
+  BUILTIN_AGENTS,
+  // CodingTool aliases (same as Agent)
+  CodingTool,
+  CreateCodingToolInput,
+  UpdateCodingToolInput,
+} from "@lib/types";
+import { parseSkillMd } from "@lib/utils/skillParser";
+import { generateDemoData } from "@lib/mock/demoData";
+
+// ==========================================
+// Generate Demo Data at Module Load
+// ==========================================
+// Demo data for skills, testScenarios, evalRuns is always fresh
+// Agents and settings are persisted (user customizations saved)
+const demoData = generateDemoData();
+
+// ==========================================
+// Store State Interface
+// ==========================================
+
+interface AppState {
+  // Data
+  skills: Skill[];
+  testScenarios: TestScenario[];
+  testSuites: TestSuite[];
+  agents: Agent[];
+  evalRuns: EvalRun[];
+  settings: Settings;
+
+  // Skill Actions
+  addSkill: (input: CreateSkillInput) => Skill;
+  updateSkill: (id: string, input: UpdateSkillInput) => void;
+  deleteSkill: (id: string) => void;
+  duplicateSkill: (id: string) => Skill;
+  addSkillVersion: (skillId: string, skillMd: string, model: ModelConfig, systemPrompt?: string, notes?: string) => void;
+
+  // Test Scenario Actions
+  addTestScenario: (input: CreateTestScenarioInput) => TestScenario;
+  updateTestScenario: (id: string, input: UpdateTestScenarioInput) => void;
+  deleteTestScenario: (id: string) => void;
+  duplicateTestScenario: (id: string) => TestScenario;
+  addAssertion: (scenarioId: string, assertion: Omit<Assertion, "id">) => void;
+  updateAssertion: (scenarioId: string, assertionId: string, updates: Partial<Assertion>) => void;
+  removeAssertion: (scenarioId: string, assertionId: string) => void;
+
+  // Test Suite Actions
+  addTestSuite: (input: CreateTestSuiteInput) => TestSuite;
+  updateTestSuite: (id: string, input: UpdateTestSuiteInput) => void;
+  deleteTestSuite: (id: string) => void;
+  duplicateTestSuite: (id: string) => TestSuite;
+  addScenarioToSuite: (suiteId: string, scenarioId: string) => void;
+  removeScenarioFromSuite: (suiteId: string, scenarioId: string) => void;
+
+  // Agent Actions
+  addAgent: (input: CreateAgentInput) => Agent;
+  updateAgent: (id: string, input: UpdateAgentInput) => void;
+  deleteAgent: (id: string) => void;
+  setDefaultAgent: (id: string) => void;
+  duplicateAgent: (id: string) => Agent;
+  getAllAgents: () => Agent[];
+
+  // CodingTool Actions (aliases for Agent actions)
+  addCodingTool: (input: CreateCodingToolInput) => CodingTool;
+  updateCodingTool: (id: string, input: UpdateCodingToolInput) => void;
+  deleteCodingTool: (id: string) => void;
+  getCodingToolById: (id: string) => CodingTool | undefined;
+  getAllTools: () => CodingTool[];
+
+  // Eval Run Actions
+  createEvalRun: (input: CreateEvalRunInput) => EvalRun;
+  updateEvalRunStatus: (id: string, status: EvalRun["status"], progress?: number) => void;
+  addEvalRunResult: (runId: string, result: Omit<EvalRunResult, "id">) => void;
+  completeEvalRun: (id: string) => void;
+  deleteEvalRun: (id: string) => void;
+
+  // Label Actions
+  addLabel: (resultId: string, label: Omit<Label, "id" | "resultId" | "labeledAt">) => void;
+
+  // Settings Actions
+  updateSettings: (settings: Partial<Settings>) => void;
+
+  // Demo Data
+  loadDemoData: () => void;
+  clearAllData: () => void;
+
+  // Getters
+  getSkillById: (id: string) => Skill | undefined;
+  getTestScenarioById: (id: string) => TestScenario | undefined;
+  getTestSuiteById: (id: string) => TestSuite | undefined;
+  getAgentById: (id: string) => Agent | undefined;
+  getEvalRunById: (id: string) => EvalRun | undefined;
+  getSkillVersionById: (skillId: string, versionId: string) => SkillVersion | undefined;
+  getTestScenariosForSkill: (skillId: string) => TestScenario[];
+  getTestScenariosForSuite: (suiteId: string) => TestScenario[];
+  getStandaloneScenarios: () => TestScenario[];
+  getDefaultAgent: () => Agent | undefined;
+}
+
+// ==========================================
+// Default Settings
+// ==========================================
+
+const defaultModel: ModelConfig = {
+  provider: "anthropic",
+  model: "claude-3-sonnet",
+  temperature: 0.7,
+  maxTokens: 4096,
+};
+
+// Get the default agent ID from built-in agents
+const defaultAgentId = BUILTIN_AGENTS.find((a) => a.isDefault)?.id || BUILTIN_AGENTS[0]?.id || "";
+
+const defaultSettings: Settings = {
+  apiKeys: [],
+  defaultModel,
+  defaultAgent: defaultAgentId,
+  labelConfigs: DEFAULT_LABELS,
+  theme: "light",
+};
+
+// ==========================================
+// Store Implementation
+// ==========================================
+
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // Initial State - Demo data for skills/scenarios/suites/runs, built-in agents
+      skills: demoData.skills,
+      testScenarios: demoData.testScenarios,
+      testSuites: demoData.testSuites || [],
+      agents: [...BUILTIN_AGENTS, ...demoData.agents.filter(a => !a.isBuiltIn)],
+      evalRuns: demoData.evalRuns,
+      settings: { ...defaultSettings },
+
+      // ==========================================
+      // Skill Actions
+      // ==========================================
+
+      addSkill: (input) => {
+        const now = new Date().toISOString();
+        const metadata = parseSkillMd(input.skillMd);
+        
+        const skill: Skill = {
+          id: generateId(),
+          name: input.name || metadata.name || "Untitled Skill",
+          description: input.description || metadata.description || "",
+          skillMd: input.skillMd,
+          metadata,
+          versions: [],
+          testScenarios: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        // Add initial version
+        const initialVersion: SkillVersion = {
+          id: generateId(),
+          skillId: skill.id,
+          skillMd: input.skillMd,
+          metadata,
+          model: get().settings.defaultModel,
+          version: 1,
+          createdAt: now,
+          notes: "Initial version",
+        };
+        skill.versions.push(initialVersion);
+
+        set((state) => ({
+          skills: [...state.skills, skill],
+        }));
+        return skill;
+      },
+
+      updateSkill: (id, input) => {
+        set((state) => ({
+          skills: state.skills.map((skill) => {
+            if (skill.id !== id) return skill;
+
+            const now = new Date().toISOString();
+            let updatedSkill = { ...skill, ...input, updatedAt: now };
+
+            // If skillMd changed, parse new metadata and add version
+            if (input.skillMd && input.skillMd !== skill.skillMd) {
+              const metadata = parseSkillMd(input.skillMd);
+              updatedSkill.metadata = metadata;
+              updatedSkill.name = input.name || metadata.name || skill.name;
+              updatedSkill.description = input.description || metadata.description || skill.description;
+
+              const newVersion: SkillVersion = {
+                id: generateId(),
+                skillId: id,
+                skillMd: input.skillMd,
+                metadata,
+                model: state.settings.defaultModel,
+                version: skill.versions.length + 1,
+                createdAt: now,
+              };
+              updatedSkill.versions = [...skill.versions, newVersion];
+            }
+
+            return updatedSkill;
+          }),
+        }));
+      },
+
+      deleteSkill: (id) => {
+        set((state) => ({
+          skills: state.skills.filter((s) => s.id !== id),
+          testScenarios: state.testScenarios.filter((ts) => ts.skillId !== id),
+        }));
+      },
+
+      duplicateSkill: (id) => {
+        const skill = get().skills.find((s) => s.id === id);
+        if (!skill) throw new Error("Skill not found");
+
+        return get().addSkill({
+          name: `${skill.name} (Copy)`,
+          description: skill.description,
+          skillMd: skill.skillMd,
+        });
+      },
+
+      addSkillVersion: (skillId, skillMd, model, systemPrompt, notes) => {
+        const metadata = parseSkillMd(skillMd);
+        const now = new Date().toISOString();
+
+        set((state) => ({
+          skills: state.skills.map((skill) => {
+            if (skill.id !== skillId) return skill;
+
+            const newVersion: SkillVersion = {
+              id: generateId(),
+              skillId,
+              skillMd,
+              metadata,
+              model,
+              systemPrompt,
+              version: skill.versions.length + 1,
+              createdAt: now,
+              notes,
+            };
+
+            return {
+              ...skill,
+              versions: [...skill.versions, newVersion],
+              updatedAt: now,
+            };
+          }),
+        }));
+      },
+
+      // ==========================================
+      // Test Scenario Actions
+      // ==========================================
+
+      addTestScenario: (input) => {
+        const now = new Date().toISOString();
+        const scenario: TestScenario = {
+          id: generateId(),
+          ...input,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          testScenarios: [...state.testScenarios, scenario],
+          // Only update skill if skillId is provided
+          skills: input.skillId
+            ? state.skills.map((skill) =>
+                skill.id === input.skillId
+                  ? { ...skill, testScenarios: [...skill.testScenarios, scenario.id] }
+                  : skill
+              )
+            : state.skills,
+          // Update suites if suiteIds provided
+          testSuites: input.suiteIds?.length
+            ? state.testSuites.map((suite) =>
+                input.suiteIds!.includes(suite.id)
+                  ? { ...suite, scenarioIds: [...suite.scenarioIds, scenario.id] }
+                  : suite
+              )
+            : state.testSuites,
+        }));
+        return scenario;
+      },
+
+      updateTestScenario: (id, input) => {
+        set((state) => ({
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === id
+              ? { ...scenario, ...input, updatedAt: new Date().toISOString() }
+              : scenario
+          ),
+        }));
+      },
+
+      deleteTestScenario: (id) => {
+        const scenario = get().testScenarios.find((s) => s.id === id);
+        if (!scenario) return;
+
+        set((state) => ({
+          testScenarios: state.testScenarios.filter((s) => s.id !== id),
+          // Only update skill if scenario had a skillId
+          skills: scenario.skillId
+            ? state.skills.map((skill) =>
+                skill.id === scenario.skillId
+                  ? { ...skill, testScenarios: skill.testScenarios.filter((sid) => sid !== id) }
+                  : skill
+              )
+            : state.skills,
+          // Remove from all suites
+          testSuites: state.testSuites.map((suite) => ({
+            ...suite,
+            scenarioIds: suite.scenarioIds.filter((sid) => sid !== id),
+          })),
+        }));
+      },
+
+      duplicateTestScenario: (id) => {
+        const scenario = get().testScenarios.find((s) => s.id === id);
+        if (!scenario) throw new Error("Test scenario not found");
+
+        return get().addTestScenario({
+          ...scenario,
+          name: `${scenario.name} (Copy)`,
+          assertions: scenario.assertions.map((a) => ({ ...a, id: generateId() })),
+        });
+      },
+
+      addAssertion: (scenarioId, assertion) => {
+        const newAssertion = { ...assertion, id: generateId() } as Assertion;
+        set((state) => ({
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === scenarioId
+              ? {
+                  ...scenario,
+                  assertions: [...scenario.assertions, newAssertion],
+                  updatedAt: new Date().toISOString(),
+                }
+              : scenario
+          ),
+        }));
+      },
+
+      updateAssertion: (scenarioId, assertionId, updates) => {
+        set((state) => ({
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === scenarioId
+              ? {
+                  ...scenario,
+                  assertions: scenario.assertions.map((a) =>
+                    a.id === assertionId ? ({ ...a, ...updates } as Assertion) : a
+                  ),
+                  updatedAt: new Date().toISOString(),
+                }
+              : scenario
+          ),
+        }));
+      },
+
+      removeAssertion: (scenarioId, assertionId) => {
+        set((state) => ({
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === scenarioId
+              ? {
+                  ...scenario,
+                  assertions: scenario.assertions.filter((a) => a.id !== assertionId),
+                  updatedAt: new Date().toISOString(),
+                }
+              : scenario
+          ),
+        }));
+      },
+
+      // ==========================================
+      // Test Suite Actions
+      // ==========================================
+
+      addTestSuite: (input) => {
+        const now = new Date().toISOString();
+        const suite: TestSuite = {
+          id: generateId(),
+          ...input,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          testSuites: [...state.testSuites, suite],
+          // Update scenarios with new suite id
+          testScenarios: state.testScenarios.map((scenario) =>
+            input.scenarioIds.includes(scenario.id)
+              ? {
+                  ...scenario,
+                  suiteIds: [...(scenario.suiteIds || []), suite.id],
+                  updatedAt: now,
+                }
+              : scenario
+          ),
+        }));
+        return suite;
+      },
+
+      updateTestSuite: (id, input) => {
+        const now = new Date().toISOString();
+        const currentSuite = get().testSuites.find((s) => s.id === id);
+        if (!currentSuite) return;
+
+        set((state) => {
+          const newScenarioIds = input.scenarioIds || currentSuite.scenarioIds;
+          const addedScenarios = newScenarioIds.filter(
+            (sid) => !currentSuite.scenarioIds.includes(sid)
+          );
+          const removedScenarios = currentSuite.scenarioIds.filter(
+            (sid) => !newScenarioIds.includes(sid)
+          );
+
+          return {
+            testSuites: state.testSuites.map((suite) =>
+              suite.id === id ? { ...suite, ...input, updatedAt: now } : suite
+            ),
+            // Update scenario suiteIds
+            testScenarios: state.testScenarios.map((scenario) => {
+              let suiteIds = scenario.suiteIds || [];
+              if (addedScenarios.includes(scenario.id)) {
+                suiteIds = [...suiteIds, id];
+              }
+              if (removedScenarios.includes(scenario.id)) {
+                suiteIds = suiteIds.filter((sid) => sid !== id);
+              }
+              return { ...scenario, suiteIds, updatedAt: now };
+            }),
+          };
+        });
+      },
+
+      deleteTestSuite: (id) => {
+        set((state) => ({
+          testSuites: state.testSuites.filter((s) => s.id !== id),
+          // Remove suite from all scenarios
+          testScenarios: state.testScenarios.map((scenario) => ({
+            ...scenario,
+            suiteIds: (scenario.suiteIds || []).filter((sid) => sid !== id),
+          })),
+        }));
+      },
+
+      duplicateTestSuite: (id) => {
+        const suite = get().testSuites.find((s) => s.id === id);
+        if (!suite) throw new Error("Test suite not found");
+
+        return get().addTestSuite({
+          name: `${suite.name} (Copy)`,
+          description: suite.description,
+          scenarioIds: [...suite.scenarioIds],
+          tags: suite.tags ? [...suite.tags] : undefined,
+        });
+      },
+
+      addScenarioToSuite: (suiteId, scenarioId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          testSuites: state.testSuites.map((suite) =>
+            suite.id === suiteId && !suite.scenarioIds.includes(scenarioId)
+              ? { ...suite, scenarioIds: [...suite.scenarioIds, scenarioId], updatedAt: now }
+              : suite
+          ),
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === scenarioId && !(scenario.suiteIds || []).includes(suiteId)
+              ? { ...scenario, suiteIds: [...(scenario.suiteIds || []), suiteId], updatedAt: now }
+              : scenario
+          ),
+        }));
+      },
+
+      removeScenarioFromSuite: (suiteId, scenarioId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          testSuites: state.testSuites.map((suite) =>
+            suite.id === suiteId
+              ? { ...suite, scenarioIds: suite.scenarioIds.filter((sid) => sid !== scenarioId), updatedAt: now }
+              : suite
+          ),
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.id === scenarioId
+              ? { ...scenario, suiteIds: (scenario.suiteIds || []).filter((sid) => sid !== suiteId), updatedAt: now }
+              : scenario
+          ),
+        }));
+      },
+
+      // ==========================================
+      // Agent Actions
+      // ==========================================
+
+      addAgent: (input) => {
+        const now = new Date().toISOString();
+        const agent: Agent = {
+          id: generateId(),
+          ...input,
+          isBuiltIn: false, // Custom agents are never built-in
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          agents: [...state.agents, agent],
+        }));
+        return agent;
+      },
+
+      updateAgent: (id, input) => {
+        set((state) => ({
+          agents: state.agents.map((agent) => {
+            // Don't allow editing built-in agents (except isDefault)
+            if (agent.id === id) {
+              if (agent.isBuiltIn) {
+                // Only allow changing isDefault for built-in agents
+                return {
+                  ...agent,
+                  isDefault: input.isDefault ?? agent.isDefault,
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return { ...agent, ...input, updatedAt: new Date().toISOString() };
+            }
+            return agent;
+          }),
+        }));
+      },
+
+      deleteAgent: (id) => {
+        const agent = get().agents.find((a) => a.id === id);
+        // Cannot delete default agent or built-in agents
+        if (agent?.isDefault || agent?.isBuiltIn) return;
+
+        set((state) => ({
+          agents: state.agents.filter((a) => a.id !== id),
+        }));
+      },
+
+      setDefaultAgent: (id) => {
+        set((state) => ({
+          agents: state.agents.map((agent) => ({
+            ...agent,
+            isDefault: agent.id === id,
+          })),
+          settings: { ...state.settings, defaultAgent: id },
+        }));
+      },
+
+      duplicateAgent: (id) => {
+        const agent = get().agents.find((a) => a.id === id);
+        if (!agent) throw new Error("Agent not found");
+
+        const now = new Date().toISOString();
+        const newAgent: Agent = {
+          ...agent,
+          id: generateId(),
+          name: `${agent.name} (Copy)`,
+          isBuiltIn: false,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          agents: [...state.agents, newAgent],
+        }));
+        return newAgent;
+      },
+
+      getAllAgents: () => get().agents,
+
+      // ==========================================
+      // CodingTool Actions (aliases for Agent actions)
+      // ==========================================
+
+      addCodingTool: (input) => get().addAgent(input),
+      updateCodingTool: (id, input) => get().updateAgent(id, input),
+      deleteCodingTool: (id) => get().deleteAgent(id),
+      getCodingToolById: (id) => get().getAgentById(id),
+      getAllTools: () => get().agents,
+
+      // ==========================================
+      // Eval Run Actions
+      // ==========================================
+
+      createEvalRun: (input) => {
+        const now = new Date().toISOString();
+        const skill = get().getSkillById(input.skillId);
+
+        const evalRun: EvalRun = {
+          id: generateId(),
+          name: input.name,
+          skillId: input.skillId,
+          skillName: skill?.name || "Unknown Skill",
+          config: input.config,
+          status: "pending",
+          progress: 0,
+          results: [],
+          aggregateMetrics: {
+            totalAssertions: 0,
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            errors: 0,
+            passRate: 0,
+            avgDuration: 0,
+            totalDuration: 0,
+          },
+          startedAt: now,
+        };
+
+        set((state) => ({
+          evalRuns: [...state.evalRuns, evalRun],
+        }));
+        return evalRun;
+      },
+
+      updateEvalRunStatus: (id, status, progress) => {
+        set((state) => ({
+          evalRuns: state.evalRuns.map((run) =>
+            run.id === id
+              ? { ...run, status, progress: progress ?? run.progress }
+              : run
+          ),
+        }));
+      },
+
+      addEvalRunResult: (runId, result) => {
+        set((state) => ({
+          evalRuns: state.evalRuns.map((run) => {
+            if (run.id !== runId) return run;
+
+            const newResult: EvalRunResult = {
+              id: generateId(),
+              ...result,
+            };
+
+            const results = [...run.results, newResult];
+
+            // Recalculate aggregate metrics
+            const allAssertionResults = results.flatMap((r) => r.assertionResults);
+            const passed = allAssertionResults.filter((ar) => ar.status === "passed").length;
+            const failed = allAssertionResults.filter((ar) => ar.status === "failed").length;
+            const skipped = allAssertionResults.filter((ar) => ar.status === "skipped").length;
+            const errors = allAssertionResults.filter((ar) => ar.status === "error").length;
+            const totalAssertions = allAssertionResults.length;
+            const totalDuration = allAssertionResults.reduce((sum, ar) => sum + (ar.duration || 0), 0);
+
+            return {
+              ...run,
+              results,
+              aggregateMetrics: {
+                totalAssertions,
+                passed,
+                failed,
+                skipped,
+                errors,
+                passRate: totalAssertions > 0 ? (passed / totalAssertions) * 100 : 0,
+                avgDuration: totalAssertions > 0 ? totalDuration / totalAssertions : 0,
+                totalDuration,
+              },
+            };
+          }),
+        }));
+      },
+
+      completeEvalRun: (id) => {
+        set((state) => ({
+          evalRuns: state.evalRuns.map((run) =>
+            run.id === id
+              ? {
+                  ...run,
+                  status: "completed",
+                  progress: 100,
+                  completedAt: new Date().toISOString(),
+                }
+              : run
+          ),
+        }));
+      },
+
+      deleteEvalRun: (id) => {
+        set((state) => ({
+          evalRuns: state.evalRuns.filter((r) => r.id !== id),
+        }));
+      },
+
+      // ==========================================
+      // Label Actions
+      // ==========================================
+
+      addLabel: (resultId, label) => {
+        // Labels would be stored within eval run results
+        // For now, this is a placeholder
+        console.log("Adding label to result", resultId, label);
+      },
+
+      // ==========================================
+      // Settings Actions
+      // ==========================================
+
+      updateSettings: (newSettings) => {
+        set((state) => ({
+          settings: { ...state.settings, ...newSettings },
+        }));
+      },
+
+      // ==========================================
+      // Demo Data Actions
+      // ==========================================
+
+      loadDemoData: () => {
+        const demoData = generateDemoData();
+        set({
+          skills: demoData.skills,
+          testScenarios: demoData.testScenarios,
+          testSuites: demoData.testSuites || [],
+          agents: demoData.agents,
+          evalRuns: demoData.evalRuns,
+        });
+      },
+
+      clearAllData: () => {
+        set({
+          skills: [],
+          testScenarios: [],
+          testSuites: [],
+          agents: [],
+          evalRuns: [],
+        });
+      },
+
+      // ==========================================
+      // Getters
+      // ==========================================
+
+      getSkillById: (id) => get().skills.find((s) => s.id === id),
+      getTestScenarioById: (id) => get().testScenarios.find((s) => s.id === id),
+      getTestSuiteById: (id) => get().testSuites.find((s) => s.id === id),
+      getAgentById: (id) => get().agents.find((a) => a.id === id),
+      getEvalRunById: (id) => get().evalRuns.find((r) => r.id === id),
+      
+      getSkillVersionById: (skillId, versionId) => {
+        const skill = get().skills.find((s) => s.id === skillId);
+        return skill?.versions.find((v) => v.id === versionId);
+      },
+
+      getTestScenariosForSkill: (skillId) => {
+        return get().testScenarios.filter((ts) => ts.skillId === skillId);
+      },
+
+      getTestScenariosForSuite: (suiteId) => {
+        const suite = get().testSuites.find((s) => s.id === suiteId);
+        if (!suite) return [];
+        return get().testScenarios.filter((ts) => suite.scenarioIds.includes(ts.id));
+      },
+
+      getStandaloneScenarios: () => {
+        return get().testScenarios.filter(
+          (ts) => !ts.skillId && (!ts.suiteIds || ts.suiteIds.length === 0)
+        );
+      },
+
+      getDefaultAgent: () => {
+        return get().agents.find((a) => a.isDefault);
+      },
+    }),
+    {
+      name: "evalforge-skills-storage",
+      storage: createJSONStorage(() => localStorage),
+      // Only persist agents and settings (user customizations)
+      // Skills, testScenarios, evalRuns always load fresh from demo data
+      partialize: (state) => ({
+        agents: state.agents,
+        settings: state.settings,
+      }),
+      // Merge persisted agents/settings with fresh demo data
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<AppState> | undefined;
+        
+        // Always use fresh demo data for skills, testScenarios, evalRuns
+        // Merge persisted agents with built-in agents (avoid duplicates)
+        const persistedAgents = persisted?.agents || [];
+        const builtInIds = BUILTIN_AGENTS.map(a => a.id);
+        const customAgents = persistedAgents.filter(a => !builtInIds.includes(a.id) && !a.isBuiltIn);
+        
+        return {
+          ...currentState,
+          agents: [...BUILTIN_AGENTS, ...customAgents],
+          settings: persisted?.settings || currentState.settings,
+        };
+      },
+    }
+  )
+);
+
+// ==========================================
+// Selector Hooks
+// ==========================================
+
+export const useSkills = () => useStore((state) => state.skills);
+export const useTestScenarios = () => useStore((state) => state.testScenarios);
+export const useTestSuites = () => useStore((state) => state.testSuites);
+export const useAgents = () => useStore((state) => state.agents);
+export const useCodingTools = () => useStore((state) => state.agents); // Alias for useAgents
+export const useEvalRuns = () => useStore((state) => state.evalRuns);
+export const useSettings = () => useStore((state) => state.settings);
+
+export const useStandaloneScenarios = () => {
+  const testScenarios = useStore((state) => state.testScenarios);
+  return useMemo(
+    () => testScenarios.filter((ts) => !ts.skillId && (!ts.suiteIds || ts.suiteIds.length === 0)),
+    [testScenarios]
+  );
+};
+
+export const useSuiteScenarios = (suiteId: string) => {
+  const testScenarios = useStore((state) => state.testScenarios);
+  const testSuites = useStore((state) => state.testSuites);
+  return useMemo(() => {
+    const suite = testSuites.find((s) => s.id === suiteId);
+    if (!suite) return [];
+    return testScenarios.filter((ts) => suite.scenarioIds.includes(ts.id));
+  }, [testScenarios, testSuites, suiteId]);
+};
+
+export const useSkillTestScenarios = (skillId: string) => {
+  const testScenarios = useStore((state) => state.testScenarios);
+  return useMemo(
+    () => testScenarios.filter((ts) => ts.skillId === skillId),
+    [testScenarios, skillId]
+  );
+};
+
+export const useRecentEvalRuns = (limit = 10) => {
+  const evalRuns = useStore((state) => state.evalRuns);
+  return useMemo(
+    () =>
+      [...evalRuns]
+        .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+        .slice(0, limit),
+    [evalRuns, limit]
+  );
+};
+
+export const useStats = () => {
+  const skills = useStore((state) => state.skills);
+  const testScenarios = useStore((state) => state.testScenarios);
+  const testSuites = useStore((state) => state.testSuites);
+  const evalRuns = useStore((state) => state.evalRuns);
+
+  return useMemo(() => {
+    const completedRuns = evalRuns.filter((r) => r.status === "completed");
+    const avgPassRate =
+      completedRuns.length > 0
+        ? completedRuns.reduce((sum, r) => sum + r.aggregateMetrics.passRate, 0) / completedRuns.length
+        : 0;
+    const standaloneScenarios = testScenarios.filter(
+      (ts) => !ts.skillId && (!ts.suiteIds || ts.suiteIds.length === 0)
+    ).length;
+
+    return {
+      totalSkills: skills.length,
+      totalScenarios: testScenarios.length,
+      totalSuites: testSuites.length,
+      standaloneScenarios,
+      totalVersions: skills.reduce((sum, s) => sum + s.versions.length, 0),
+      totalEvalRuns: evalRuns.length,
+      completedRuns: completedRuns.length,
+      avgPassRate,
+      totalAssertions: testScenarios.reduce((sum, ts) => sum + ts.assertions.length, 0),
+    };
+  }, [skills, testScenarios, testSuites, evalRuns]);
+};
