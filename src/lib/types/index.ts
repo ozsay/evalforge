@@ -261,10 +261,20 @@ export interface ExpectedFile {
 export interface TestScenario {
   id: string;
   /** 
-   * The Skill this scenario tests. Each scenario belongs to exactly one skill.
-   * Required for evaluation - scenarios without a skillId cannot be run.
+   * The Skill this scenario tests.
+   * 
+   * BEST PRACTICE: Each scenario should belong to exactly one skill.
+   * 
+   * When skillId is provided:
+   * - The scenario tests that specific skill
+   * - Results are attributed to that skill in reports
+   * 
+   * When skillId is omitted (standalone scenarios):
+   * - The scenario can still run, but won't be linked to a skill
+   * - Useful for generic tests or cross-skill scenarios in suites
+   * - The agent's default behavior is tested without skill context
    */
-  skillId: string;
+  skillId?: string;
   /** Test suites this scenario is included in (for organization/grouping) */
   suiteIds?: string[];
   name: string;
@@ -410,6 +420,49 @@ export type FailureCategory =
 
 export type FailureSeverity = "critical" | "high" | "medium" | "low";
 
+/**
+ * Execution trace - what the agent actually did during a run.
+ * Used for debugging and understanding agent behavior.
+ */
+export interface ExecutionTrace {
+  /** Commands the agent executed */
+  commands: {
+    command: string;
+    exitCode: number;
+    output?: string;
+    duration?: number;
+  }[];
+  /** Files the agent created or modified */
+  filesModified: {
+    path: string;
+    action: "created" | "modified" | "deleted";
+    content?: string;
+  }[];
+  /** API calls made (for LLM agents) */
+  apiCalls?: {
+    endpoint: string;
+    tokensUsed: number;
+    duration: number;
+  }[];
+  /** Total execution time in ms */
+  totalDuration: number;
+}
+
+/**
+ * Diff content for comparing expected vs actual file content.
+ */
+export interface DiffContent {
+  path: string;
+  expected: string;
+  actual: string;
+  /** Pre-computed diff lines for display */
+  diffLines?: {
+    type: "added" | "removed" | "unchanged";
+    content: string;
+    lineNumber?: number;
+  }[];
+}
+
 export interface FailureAnalysis {
   category: FailureCategory;
   severity: FailureSeverity;
@@ -420,6 +473,12 @@ export interface FailureAnalysis {
   relatedAssertions: string[];
   codeSnippet?: string;
   similarIssues?: string[];
+  /** Diff showing expected vs actual content */
+  diff?: DiffContent;
+  /** Execution trace showing what the agent did */
+  executionTrace?: ExecutionTrace;
+  /** Pattern ID for grouping similar failures */
+  patternId?: string;
 }
 
 /**

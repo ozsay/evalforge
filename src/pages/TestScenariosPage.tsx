@@ -131,8 +131,14 @@ export function TestScenariosPage() {
   const [editingScenario, setEditingScenario] = useState<TestScenario | null>(null);
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState<Omit<CreateTestScenarioInput, "assertions" | "expectedFiles" | "tags" | "suiteIds">>({
+  // Form state - skillId can be undefined for standalone scenarios
+  type FormDataType = {
+    skillId?: string;
+    name: string;
+    description: string;
+    triggerPrompt: string;
+  };
+  const [formData, setFormData] = useState<FormDataType>({
     skillId: undefined,
     name: "",
     description: "",

@@ -8,9 +8,7 @@ import {
   XCircle,
   AlertCircle,
   Clock,
-  Layers,
   Cpu,
-  MessageSquare,
   TestTube2,
   FolderKanban,
   ChevronDown,
@@ -25,7 +23,7 @@ import {
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
-import { Input, Textarea, Select } from "@components/ui/Input";
+import { Input, Select } from "@components/ui/Input";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
@@ -42,7 +40,7 @@ import type {
 } from "@lib/types";
 import { AVAILABLE_MODELS as MODELS } from "@lib/types";
 import { runScenario } from "@lib/mock/skillRunner";
-import { formatRelativeTime, cn } from "@lib/utils";
+import { cn, formatRelativeTime } from "@lib/utils";
 
 // Agent icon mapping
 const AgentIcon = ({ type, className }: { type: string; className?: string }) => {
@@ -333,7 +331,6 @@ export function EvaluationPage() {
                     if (e.target.value) {
                       // Clear skill selection when suite is selected
                       setSelectedSkillId("");
-                      setSelectedVersionIds([]);
                     }
                   }}
                   options={[
@@ -449,89 +446,83 @@ export function EvaluationPage() {
             </Card>
           )}
 
-          {/* Model Configuration */}
+          {/* Model Override (Optional) */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Cpu className="w-5 h-5 text-orange-500" />
-                  Models
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={addModel}>
-                  Add Model
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Cpu className="w-5 h-5 text-orange-500" />
+                Model Configuration
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {selectedModels.map((model, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-gray-50 rounded-lg space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Model {index + 1}
-                      </span>
-                      {selectedModels.length > 1 && (
-                        <button
-                          onClick={() => removeModel(index)}
-                          className="text-xs text-gray-400 hover:text-red-600"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Select
-                        value={model.provider}
-                        onChange={(e) =>
-                          updateModel(index, {
-                            provider: e.target.value as LLMProvider,
-                            model: MODELS[e.target.value as LLMProvider][0],
-                          })
-                        }
-                        options={Object.keys(MODELS).map((p) => ({
-                          value: p,
-                          label: p.charAt(0).toUpperCase() + p.slice(1),
-                        }))}
-                      />
-                      <Select
-                        value={model.model}
-                        onChange={(e) => updateModel(index, { model: e.target.value })}
-                        options={MODELS[model.provider].map((m) => ({
-                          value: m,
-                          label: m,
-                        }))}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        label="Temperature"
-                        type="number"
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        value={model.temperature}
-                        onChange={(e) =>
-                          updateModel(index, { temperature: parseFloat(e.target.value) })
-                        }
-                      />
-                      <Input
-                        label="Max Tokens"
-                        type="number"
-                        min={100}
-                        max={128000}
-                        step={100}
-                        value={model.maxTokens}
-                        onChange={(e) =>
-                          updateModel(index, { maxTokens: parseInt(e.target.value) })
-                        }
-                      />
-                    </div>
+              <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useModelOverride}
+                  onChange={(e) => setUseModelOverride(e.target.checked)}
+                  className="rounded text-orange-600"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">
+                    Override agent's default model
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    By default, each agent uses its own configured model
+                  </p>
+                </div>
+              </label>
+              
+              {useModelOverride && (
+                <div className="p-3 bg-gray-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      value={modelOverride.provider}
+                      onChange={(e) =>
+                        updateModelOverride({
+                          provider: e.target.value as LLMProvider,
+                          model: MODELS[e.target.value as LLMProvider][0],
+                        })
+                      }
+                      options={Object.keys(MODELS).map((p) => ({
+                        value: p,
+                        label: p.charAt(0).toUpperCase() + p.slice(1),
+                      }))}
+                    />
+                    <Select
+                      value={modelOverride.model}
+                      onChange={(e) => updateModelOverride({ model: e.target.value })}
+                      options={MODELS[modelOverride.provider].map((m) => ({
+                        value: m,
+                        label: m,
+                      }))}
+                    />
                   </div>
-                ))}
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Temperature"
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={modelOverride.temperature}
+                      onChange={(e) =>
+                        updateModelOverride({ temperature: parseFloat(e.target.value) })
+                      }
+                    />
+                    <Input
+                      label="Max Tokens"
+                      type="number"
+                      min={100}
+                      max={128000}
+                      step={100}
+                      value={modelOverride.maxTokens}
+                      onChange={(e) =>
+                        updateModelOverride({ maxTokens: parseInt(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -606,56 +597,6 @@ export function EvaluationPage() {
             </CardContent>
           </Card>
 
-          {/* System Prompts */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MessageSquare className="w-5 h-5 text-purple-500" />
-                  System Prompts (Optional)
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCustomPrompts([...customPrompts, ""])}
-                >
-                  Add Prompt
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-500 mb-3">
-                Add custom system prompts to test variations
-              </p>
-              <div className="space-y-3">
-                {customPrompts.map((prompt, index) => (
-                  <div key={index} className="relative">
-                    <Textarea
-                      placeholder="Custom system prompt..."
-                      rows={3}
-                      value={prompt}
-                      onChange={(e) => {
-                        const newPrompts = [...customPrompts];
-                        newPrompts[index] = e.target.value;
-                        setCustomPrompts(newPrompts);
-                      }}
-                    />
-                    {customPrompts.length > 1 && (
-                      <button
-                        onClick={() =>
-                          setCustomPrompts(customPrompts.filter((_, i) => i !== index))
-                        }
-                        className="absolute top-2 right-2 text-xs text-gray-400 hover:text-red-600"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Run Button */}
           <div className="sticky bottom-0 bg-white p-4 -mx-8 border-t shadow-lg">
             <div className="flex items-center justify-between mb-3">
@@ -695,7 +636,7 @@ export function EvaluationPage() {
                 leftIcon={<Play className="w-4 h-4" />}
                 disabled={
                   selectedScenarioIds.length === 0 ||
-                  (!selectedSuiteId && (!selectedSkillId || selectedVersionIds.length === 0))
+                  (!selectedSuiteId && !selectedSkillId)
                 }
               >
                 {selectedSuiteId ? "Run Suite Evaluation" : "Run Evaluation"}
