@@ -1056,72 +1056,18 @@ function generateAgentComparisonRuns(): EvalRun[] {
 const DEMO_AGENTS: Agent[] = [
   // Include built-in agents
   ...BUILTIN_AGENTS,
-  // Add some custom demo agents
-  {
-    id: "agent-custom-react",
-    type: "custom",
-    name: "React Specialist",
-    description: "Custom agent optimized for React component generation with template files",
-    icon: "component",
-    runCommand: "npx",
-    runArgs: ["@anthropic-ai/claude-code", "run", "--react-mode"],
-    workingDirectory: "./react-workspace",
-    templateFiles: [
-      { targetPath: "tsconfig.json", content: '{"compilerOptions": {"jsx": "react-jsx"}}' },
-      { targetPath: ".eslintrc", content: '{"extends": ["react-app"]}' },
-    ],
-    envVars: {
-      NODE_ENV: "development",
-      REACT_STRICT_MODE: "true",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-    capabilities: [
-      "React component generation",
-      "TypeScript support",
-      "Storybook integration",
-      "Testing Library setup",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "agent-custom-api",
-    type: "custom",
-    name: "API Builder",
-    description: "Custom agent for building REST APIs with Express/Fastify",
-    icon: "server",
-    runCommand: "npx",
-    runArgs: ["@openai/codex", "run", "--api-mode"],
-    workingDirectory: "./api-workspace",
-    envVars: {
-      NODE_ENV: "development",
-    },
-    modelConfig: { provider: "openai", model: "gpt-4-turbo", temperature: 0.5, maxTokens: 4096 },
-    capabilities: [
-      "REST API generation",
-      "OpenAPI documentation",
-      "Input validation",
-      "Error handling",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
 
   // ==========================================
-  // Wix Vibe Agents (Site Building with AI)
+  // Wix Custom Coding Agents
   // ==========================================
   {
-    id: "agent-wix-vibe-site",
+    id: "agent-wix-vibe",
     type: "custom",
-    name: "Wix Vibe - Site Builder",
-    description: "AI-powered site building agent that creates complete Wix websites from natural language descriptions",
+    name: "Wix Vibe",
+    description: "AI-powered site building agent that creates complete Wix websites and components from natural language descriptions",
     icon: "globe",
     runCommand: "npx",
-    runArgs: ["@wix/vibe-cli", "build", "--mode=site"],
+    runArgs: ["@wix/vibe-cli", "build"],
     workingDirectory: "./wix-site",
     templateFiles: [
       { targetPath: "wix.config.json", content: '{"type": "site", "framework": "vibe"}' },
@@ -1137,6 +1083,7 @@ const DEMO_AGENTS: Agent[] = [
       "Section and widget placement",
       "Theme and styling application",
       "Responsive design",
+      "Custom component creation",
     ],
     isBuiltIn: false,
     isDefault: false,
@@ -1144,62 +1091,29 @@ const DEMO_AGENTS: Agent[] = [
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: "agent-wix-vibe-component",
+    id: "agent-wix-app-builder",
     type: "custom",
-    name: "Wix Vibe - Component Builder",
-    description: "AI-powered component building agent that creates reusable Wix components and widgets",
-    icon: "component",
-    runCommand: "npx",
-    runArgs: ["@wix/vibe-cli", "build", "--mode=component"],
-    workingDirectory: "./wix-components",
-    templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "component", "framework": "vibe"}' },
-    ],
-    envVars: {
-      WIX_ENV: "development",
-      VIBE_MODE: "component",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-    capabilities: [
-      "Custom component generation",
-      "Widget creation",
-      "Props and state management",
-      "Animation support",
-      "Accessibility compliance",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-
-  // ==========================================
-  // Wix App Builder Agents
-  // ==========================================
-  {
-    id: "agent-wix-app-dashboard",
-    type: "custom",
-    name: "Wix App Builder - Dashboard App",
-    description: "AI agent for building Wix dashboard applications with full CRUD functionality",
+    name: "Wix App Builder",
+    description: "AI agent for building Wix applications including dashboard apps, widgets, and Blocks components",
     icon: "layout-dashboard",
     runCommand: "npx",
-    runArgs: ["@wix/app-builder", "create", "--type=dashboard"],
+    runArgs: ["@wix/app-builder", "create"],
     workingDirectory: "./wix-app",
     templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "dashboard"}' },
+      { targetPath: "wix.config.json", content: '{"type": "app"}' },
       { targetPath: "tsconfig.json", content: '{"compilerOptions": {"jsx": "react-jsx", "strict": true}}' },
     ],
     envVars: {
       WIX_ENV: "development",
-      APP_TYPE: "dashboard",
     },
     modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
     capabilities: [
       "Dashboard page generation",
+      "Widget app creation",
+      "Blocks component development",
       "Wix Design System integration",
       "Data management with Wix SDK",
-      "Settings pages",
-      "Multi-page navigation",
+      "Settings and configuration pages",
     ],
     isBuiltIn: false,
     isDefault: false,
@@ -1207,57 +1121,29 @@ const DEMO_AGENTS: Agent[] = [
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: "agent-wix-app-widget",
+    id: "agent-wix-claude-coder",
     type: "custom",
-    name: "Wix App Builder - Widget App",
-    description: "AI agent for building Wix widget applications that can be embedded in sites",
-    icon: "puzzle",
-    runCommand: "npx",
-    runArgs: ["@wix/app-builder", "create", "--type=widget"],
-    workingDirectory: "./wix-widget-app",
+    name: "Wix Claude Coder",
+    description: "Claude CLI enhanced with Wix MCP capabilities for coding Wix projects with full platform integration",
+    icon: "terminal",
+    runCommand: "claude",
+    runArgs: ["--mcp", "wix"],
+    workingDirectory: "./wix-project",
     templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "widget"}' },
+      { targetPath: ".mcp/wix.json", content: '{"server": "wix-mcp", "capabilities": ["sites", "apps", "data", "auth"]}' },
     ],
     envVars: {
       WIX_ENV: "development",
-      APP_TYPE: "widget",
+      CLAUDE_MCP_ENABLED: "true",
     },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 16384 },
     capabilities: [
-      "Embeddable widget creation",
-      "Settings panel integration",
-      "Responsive widget layouts",
-      "Site interaction APIs",
-      "Widget SDK usage",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "agent-wix-app-blocks",
-    type: "custom",
-    name: "Wix App Builder - Blocks App",
-    description: "AI agent for building Wix Blocks applications with visual components",
-    icon: "blocks",
-    runCommand: "npx",
-    runArgs: ["@wix/app-builder", "create", "--type=blocks"],
-    workingDirectory: "./wix-blocks-app",
-    templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "blocks"}' },
-    ],
-    envVars: {
-      WIX_ENV: "development",
-      APP_TYPE: "blocks",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
-    capabilities: [
-      "Blocks component creation",
-      "Visual panel design",
-      "Props API definition",
-      "Preset configurations",
-      "Documentation generation",
+      "Full Wix platform access via MCP",
+      "Site and app development",
+      "Wix Data collections management",
+      "HTTP functions and backend code",
+      "Wix SDK integration",
+      "Live site deployment",
     ],
     isBuiltIn: false,
     isDefault: false,
@@ -1476,22 +1362,12 @@ Follow Wix CLI best practices:
   {
     id: "tg-wix-app-builder",
     name: "Wix App Builder",
-    description: "All App Builder coding agents for building Wix applications",
+    description: "Wix App Builder coding agent for building Wix applications",
     targets: [
       {
-        id: "target-app-dashboard",
+        id: "target-app-builder",
         type: "coding_agent",
-        agentId: "agent-wix-app-dashboard",
-      },
-      {
-        id: "target-app-widget",
-        type: "coding_agent",
-        agentId: "agent-wix-app-widget",
-      },
-      {
-        id: "target-app-blocks",
-        type: "coding_agent",
-        agentId: "agent-wix-app-blocks",
+        agentId: "agent-wix-app-builder",
       },
     ],
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
@@ -1504,21 +1380,34 @@ Follow Wix CLI best practices:
   {
     id: "tg-wix-vibe",
     name: "Wix Vibe",
-    description: "Wix Vibe AI agents for site and component building",
+    description: "Wix Vibe AI agent for site and component building",
     targets: [
       {
-        id: "target-vibe-site",
+        id: "target-vibe",
         type: "coding_agent",
-        agentId: "agent-wix-vibe-site",
-      },
-      {
-        id: "target-vibe-component",
-        type: "coding_agent",
-        agentId: "agent-wix-vibe-component",
+        agentId: "agent-wix-vibe",
       },
     ],
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Claude Coder Target Group
+  // ==========================================
+  {
+    id: "tg-wix-claude-coder",
+    name: "Wix Claude Coder",
+    description: "Claude CLI with Wix MCP capabilities for full platform integration",
+    targets: [
+      {
+        id: "target-claude-coder",
+        type: "coding_agent",
+        agentId: "agent-wix-claude-coder",
+      },
+    ],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.25 * 24 * 60 * 60 * 1000).toISOString(),
   },
 
   // ==========================================
