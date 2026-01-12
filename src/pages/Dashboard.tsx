@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   FileCode2,
+  Layers,
   TestTube2,
   Play,
   TrendingUp,
@@ -14,7 +15,7 @@ import { PageHeader } from "@components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
-import { useStats, useRecentEvalRuns, useSkills, useTestScenarios } from "@lib/store";
+import { useStats, useRecentEvalRuns, useSkills, useTestScenarios, useTargetGroups } from "@lib/store";
 import { formatRelativeTime, cn } from "@lib/utils";
 import {
   LineChart,
@@ -43,6 +44,7 @@ export function Dashboard() {
   const recentRuns = useRecentEvalRuns(5);
   const skills = useSkills();
   const scenarios = useTestScenarios();
+  const targetGroups = useTargetGroups();
 
   // Prepare mini trend data
   const trendData = recentRuns
@@ -70,12 +72,12 @@ export function Dashboard() {
         {/* Stats Grid */}
         <motion.div variants={item} className="grid grid-cols-4 gap-4">
           <StatCard
-            icon={FileCode2}
-            label="Agent Skills"
-            value={stats.totalSkills}
-            subLabel={`${stats.totalVersions} versions`}
+            icon={Layers}
+            label="Target Groups"
+            value={targetGroups.length}
+            subLabel={`${stats.totalSkills} skills, ${targetGroups.reduce((acc, tg) => acc + tg.targets.length, 0)} targets`}
             color="violet"
-            to="/skills"
+            to="/target-groups"
           />
           <StatCard
             icon={TestTube2}

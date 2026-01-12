@@ -29,6 +29,17 @@ import {
   CodingTool,
   CreateCodingToolInput,
   UpdateCodingToolInput,
+  // Target Group types
+  TargetGroup,
+  Target,
+  CreateTargetGroupInput,
+  UpdateTargetGroupInput,
+  CreateTargetInput,
+  UpdateTargetInput,
+  // Prompt Agent types
+  PromptAgent,
+  CreatePromptAgentInput,
+  UpdatePromptAgentInput,
 } from "@lib/types";
 import { parseSkillMd } from "@lib/utils/skillParser";
 import { generateDemoData } from "@lib/mock/demoData";
@@ -49,6 +60,8 @@ interface AppState {
   skills: Skill[];
   testScenarios: TestScenario[];
   testSuites: TestSuite[];
+  targetGroups: TargetGroup[];
+  promptAgents: PromptAgent[];
   agents: Agent[];
   evalRuns: EvalRun[];
   settings: Settings;
@@ -76,6 +89,22 @@ interface AppState {
   duplicateTestSuite: (id: string) => TestSuite;
   addScenarioToSuite: (suiteId: string, scenarioId: string) => void;
   removeScenarioFromSuite: (suiteId: string, scenarioId: string) => void;
+
+  // Target Group Actions
+  addTargetGroup: (input: CreateTargetGroupInput) => TargetGroup;
+  updateTargetGroup: (id: string, input: UpdateTargetGroupInput) => void;
+  deleteTargetGroup: (id: string) => void;
+  duplicateTargetGroup: (id: string) => TargetGroup;
+  addTargetToGroup: (groupId: string, target: CreateTargetInput) => void;
+  removeTargetFromGroup: (groupId: string, targetId: string) => void;
+  updateTargetInGroup: (groupId: string, targetId: string, updates: UpdateTargetInput) => void;
+
+  // Prompt Agent Actions
+  addPromptAgent: (input: CreatePromptAgentInput) => PromptAgent;
+  updatePromptAgent: (id: string, input: UpdatePromptAgentInput) => void;
+  deletePromptAgent: (id: string) => void;
+  duplicatePromptAgent: (id: string) => PromptAgent;
+  getPromptAgentById: (id: string) => PromptAgent | undefined;
 
   // Agent Actions
   addAgent: (input: CreateAgentInput) => Agent;
@@ -113,11 +142,13 @@ interface AppState {
   getSkillById: (id: string) => Skill | undefined;
   getTestScenarioById: (id: string) => TestScenario | undefined;
   getTestSuiteById: (id: string) => TestSuite | undefined;
+  getTargetGroupById: (id: string) => TargetGroup | undefined;
   getAgentById: (id: string) => Agent | undefined;
   getEvalRunById: (id: string) => EvalRun | undefined;
   getSkillVersionById: (skillId: string, versionId: string) => SkillVersion | undefined;
   getTestScenariosForSkill: (skillId: string) => TestScenario[];
   getTestScenariosForSuite: (suiteId: string) => TestScenario[];
+  getTestScenariosForTargetGroup: (targetGroupId: string) => TestScenario[];
   getStandaloneScenarios: () => TestScenario[];
   getDefaultAgent: () => Agent | undefined;
 }
@@ -155,6 +186,8 @@ export const useStore = create<AppState>()(
       skills: demoData.skills,
       testScenarios: demoData.testScenarios,
       testSuites: demoData.testSuites || [],
+      targetGroups: demoData.targetGroups || [],
+      promptAgents: demoData.promptAgents || [],
       agents: [...BUILTIN_AGENTS, ...demoData.agents.filter(a => !a.isBuiltIn)],
       evalRuns: demoData.evalRuns,
       settings: { ...defaultSettings },
@@ -518,6 +551,155 @@ export const useStore = create<AppState>()(
       },
 
       // ==========================================
+      // Target Group Actions
+      // ==========================================
+
+      addTargetGroup: (input) => {
+        const now = new Date().toISOString();
+        const targetGroup: TargetGroup = {
+          id: generateId(),
+          name: input.name,
+          description: input.description,
+          targets: input.targets.map((t) => ({ ...t, id: t.id || generateId() })),
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          targetGroups: [...state.targetGroups, targetGroup],
+        }));
+        return targetGroup;
+      },
+
+      updateTargetGroup: (id, input) => {
+        set((state) => ({
+          targetGroups: state.targetGroups.map((group) =>
+            group.id === id
+              ? { ...group, ...input, updatedAt: new Date().toISOString() }
+              : group
+          ),
+        }));
+      },
+
+      deleteTargetGroup: (id) => {
+        set((state) => ({
+          targetGroups: state.targetGroups.filter((g) => g.id !== id),
+          // Clear targetGroupId from scenarios that referenced this group
+          testScenarios: state.testScenarios.map((scenario) =>
+            scenario.targetGroupId === id
+              ? { ...scenario, targetGroupId: undefined, updatedAt: new Date().toISOString() }
+              : scenario
+          ),
+        }));
+      },
+
+      duplicateTargetGroup: (id) => {
+        const group = get().targetGroups.find((g) => g.id === id);
+        if (!group) throw new Error("Target group not found");
+
+        return get().addTargetGroup({
+          name: `${group.name} (Copy)`,
+          description: group.description,
+          targets: group.targets.map((t) => ({ ...t, id: generateId() })),
+        });
+      },
+
+      addTargetToGroup: (groupId, target) => {
+        const now = new Date().toISOString();
+        const newTarget: Target = {
+          ...target,
+          id: generateId(),
+        };
+
+        set((state) => ({
+          targetGroups: state.targetGroups.map((group) =>
+            group.id === groupId
+              ? { ...group, targets: [...group.targets, newTarget], updatedAt: now }
+              : group
+          ),
+        }));
+      },
+
+      removeTargetFromGroup: (groupId, targetId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          targetGroups: state.targetGroups.map((group) =>
+            group.id === groupId
+              ? { ...group, targets: group.targets.filter((t) => t.id !== targetId), updatedAt: now }
+              : group
+          ),
+        }));
+      },
+
+      updateTargetInGroup: (groupId, targetId, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          targetGroups: state.targetGroups.map((group) =>
+            group.id === groupId
+              ? {
+                  ...group,
+                  targets: group.targets.map((t) =>
+                    t.id === targetId ? { ...t, ...updates } as Target : t
+                  ),
+                  updatedAt: now,
+                }
+              : group
+          ),
+        }));
+      },
+
+      // ==========================================
+      // Prompt Agent Actions
+      // ==========================================
+
+      addPromptAgent: (input) => {
+        const now = new Date().toISOString();
+        const promptAgent: PromptAgent = {
+          id: generateId(),
+          ...input,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        set((state) => ({
+          promptAgents: [...state.promptAgents, promptAgent],
+        }));
+        return promptAgent;
+      },
+
+      updatePromptAgent: (id, input) => {
+        set((state) => ({
+          promptAgents: state.promptAgents.map((pa) =>
+            pa.id === id
+              ? { ...pa, ...input, updatedAt: new Date().toISOString() }
+              : pa
+          ),
+        }));
+      },
+
+      deletePromptAgent: (id) => {
+        set((state) => ({
+          promptAgents: state.promptAgents.filter((pa) => pa.id !== id),
+        }));
+      },
+
+      duplicatePromptAgent: (id) => {
+        const promptAgent = get().promptAgents.find((pa) => pa.id === id);
+        if (!promptAgent) throw new Error("Prompt agent not found");
+
+        return get().addPromptAgent({
+          name: `${promptAgent.name} (Copy)`,
+          description: promptAgent.description,
+          systemPrompt: promptAgent.systemPrompt,
+          mcpServers: [...promptAgent.mcpServers],
+          modelConfig: { ...promptAgent.modelConfig },
+          tags: promptAgent.tags ? [...promptAgent.tags] : undefined,
+        });
+      },
+
+      getPromptAgentById: (id) => get().promptAgents.find((pa) => pa.id === id),
+
+      // ==========================================
       // Agent Actions
       // ==========================================
 
@@ -746,6 +928,8 @@ export const useStore = create<AppState>()(
           skills: demoData.skills,
           testScenarios: demoData.testScenarios,
           testSuites: demoData.testSuites || [],
+          targetGroups: demoData.targetGroups || [],
+          promptAgents: demoData.promptAgents || [],
           agents: demoData.agents,
           evalRuns: demoData.evalRuns,
         });
@@ -756,6 +940,8 @@ export const useStore = create<AppState>()(
           skills: [],
           testScenarios: [],
           testSuites: [],
+          targetGroups: [],
+          promptAgents: [],
           agents: [],
           evalRuns: [],
         });
@@ -768,6 +954,7 @@ export const useStore = create<AppState>()(
       getSkillById: (id) => get().skills.find((s) => s.id === id),
       getTestScenarioById: (id) => get().testScenarios.find((s) => s.id === id),
       getTestSuiteById: (id) => get().testSuites.find((s) => s.id === id),
+      getTargetGroupById: (id) => get().targetGroups.find((g) => g.id === id),
       getAgentById: (id) => get().agents.find((a) => a.id === id),
       getEvalRunById: (id) => get().evalRuns.find((r) => r.id === id),
       
@@ -784,6 +971,10 @@ export const useStore = create<AppState>()(
         const suite = get().testSuites.find((s) => s.id === suiteId);
         if (!suite) return [];
         return get().testScenarios.filter((ts) => suite.scenarioIds.includes(ts.id));
+      },
+
+      getTestScenariosForTargetGroup: (targetGroupId) => {
+        return get().testScenarios.filter((ts) => ts.targetGroupId === targetGroupId);
       },
 
       getStandaloneScenarios: () => {
@@ -832,6 +1023,8 @@ export const useStore = create<AppState>()(
 export const useSkills = () => useStore((state) => state.skills);
 export const useTestScenarios = () => useStore((state) => state.testScenarios);
 export const useTestSuites = () => useStore((state) => state.testSuites);
+export const useTargetGroups = () => useStore((state) => state.targetGroups);
+export const usePromptAgents = () => useStore((state) => state.promptAgents);
 export const useAgents = () => useStore((state) => state.agents);
 export const useCodingTools = () => useStore((state) => state.agents); // Alias for useAgents
 export const useEvalRuns = () => useStore((state) => state.evalRuns);
@@ -860,6 +1053,14 @@ export const useSkillTestScenarios = (skillId: string) => {
   return useMemo(
     () => testScenarios.filter((ts) => ts.skillId === skillId),
     [testScenarios, skillId]
+  );
+};
+
+export const useTargetGroupScenarios = (targetGroupId: string) => {
+  const testScenarios = useStore((state) => state.testScenarios);
+  return useMemo(
+    () => testScenarios.filter((ts) => ts.targetGroupId === targetGroupId),
+    [testScenarios, targetGroupId]
   );
 };
 

@@ -5,7 +5,9 @@ import { Dashboard } from "@pages/Dashboard";
 import { SkillsPage } from "@pages/SkillsPage";
 import { TestScenariosPage } from "@pages/TestScenariosPage";
 import { TestSuitesPage } from "@pages/TestSuitesPage";
+import { TargetGroupsPage } from "@pages/TargetGroupsPage";
 import { AgentsPage } from "@pages/AgentsPage";
+import { PromptAgentsPage } from "@pages/PromptAgentsPage";
 import { EvaluationPage } from "@pages/EvaluationPage";
 import { ResultsPage } from "@pages/ResultsPage";
 import { LabelingPage } from "@pages/LabelingPage";
@@ -21,7 +23,9 @@ function App() {
           <Route path="/skills" element={<SkillsPage />} />
           <Route path="/scenarios" element={<TestScenariosPage />} />
           <Route path="/suites" element={<TestSuitesPage />} />
+          <Route path="/target-groups" element={<TargetGroupsPage />} />
           <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/prompt-agents" element={<PromptAgentsPage />} />
           <Route path="/evaluation" element={<EvaluationPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/labeling" element={<LabelingPage />} />

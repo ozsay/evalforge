@@ -9,6 +9,8 @@ import type {
   SkillVersion,
   TestScenario,
   TestSuite,
+  TargetGroup,
+  PromptAgent,
   EvalRun,
   EvalRunResult,
   AssertionResult,
@@ -200,6 +202,236 @@ Build secure authentication systems with multiple provider support.
       },
     ]
   ),
+
+  // ==========================================
+  // Wix Dashboard Page Coding Skills
+  // ==========================================
+  createSkill(
+    "skill-wix-dashboard-basic",
+    "Wix Dashboard Page - Basic",
+    "Creates basic Wix CLI dashboard pages with standard layouts and widgets",
+    `---
+name: wix-dashboard-page-basic
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - dashboard
+  - cli
+allowed-tools: Read, Write, Bash
+---
+
+# Wix Dashboard Page - Basic
+
+Create basic dashboard pages for Wix applications using the Wix CLI.
+
+## Capabilities
+
+- Create dashboard pages with standard layouts
+- Add basic widgets (stats, tables, cards)
+- Implement simple navigation patterns
+- Use Wix Design System components
+
+## Output Structure
+
+\`\`\`
+src/dashboard/pages/{PageName}/
+├── page.tsx
+├── page.module.css
+└── index.ts
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-dash-basic-v1",
+        version: 1,
+        skillMd: "# Wix Dashboard Basic v1",
+        metadata: { name: "Wix Dashboard Basic", description: "v1 - Standard layouts" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial basic dashboard skill",
+      },
+      {
+        id: "skill-wix-dash-basic-v2",
+        version: 2,
+        skillMd: "# Wix Dashboard Basic v2 - Improved widgets",
+        metadata: { name: "Wix Dashboard Basic", description: "v2 - Better widget support" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Added more widget types",
+      },
+    ]
+  ),
+  createSkill(
+    "skill-wix-dashboard-advanced",
+    "Wix Dashboard Page - Advanced",
+    "Creates Wix CLI dashboard pages with with direct instructions how to handle data fetching, state management, and complex interactions",
+    `---
+name: wix-dashboard-page-advanced
+version: 2.0.0
+author: Wix Team
+tags:
+  - wix
+  - dashboard
+  - cli
+  - advanced
+allowed-tools: Read, Write, Bash, WixSDK
+---
+
+# Wix Dashboard Page - Advanced
+
+Create advanced dashboard pages with real-time data, complex state management, and rich interactions.
+
+## Capabilities
+
+- Real-time data fetching with Wix SDK
+- Complex state management patterns
+- Advanced table features (sorting, filtering, pagination)
+- Modal workflows and multi-step forms
+- Dark/light theme support
+
+## Output Structure
+
+\`\`\`
+src/dashboard/pages/{PageName}/
+├── page.tsx
+├── page.module.css
+├── components/
+│   ├── DataTable.tsx
+│   └── StatsWidget.tsx
+├── hooks/
+│   └── usePageData.ts
+└── index.ts
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-dash-adv-v1",
+        version: 1,
+        skillMd: "# Wix Dashboard Advanced v1",
+        metadata: { name: "Wix Dashboard Advanced", description: "v1 - Complex pages" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial advanced dashboard skill",
+      },
+    ]
+  ),
+
+  // ==========================================
+  // Wix Backend Coding Skills
+  // ==========================================
+  createSkill(
+    "skill-wix-backend-http",
+    "Wix Backend - HTTP Functions",
+    "Creates Wix HTTP Functions for backend API endpoints",
+    `---
+name: wix-backend-http-functions
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - backend
+  - http
+  - api
+allowed-tools: Read, Write, Bash
+---
+
+# Wix Backend - HTTP Functions
+
+Create HTTP function endpoints for Wix applications.
+
+## Capabilities
+
+- Create GET/POST/PUT/DELETE endpoints
+- Input validation and error handling
+- Authentication and authorization
+- CORS configuration
+- Response formatting
+
+## Output Structure
+
+\`\`\`
+backend/
+├── http-functions.ts
+└── helpers/
+    ├── validation.ts
+    └── auth.ts
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-http-v1",
+        version: 1,
+        skillMd: "# Wix HTTP Functions v1",
+        metadata: { name: "Wix HTTP", description: "v1 - Basic endpoints" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial HTTP functions skill",
+      },
+      {
+        id: "skill-wix-http-v2",
+        version: 2,
+        skillMd: "# Wix HTTP Functions v2 - With middleware",
+        metadata: { name: "Wix HTTP", description: "v2 - Added middleware support" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Added middleware and better error handling",
+      },
+    ]
+  ),
+  createSkill(
+    "skill-wix-backend-velo",
+    "Wix Backend - Velo Backend",
+    "Creates Velo backend modules with data collections and scheduled jobs",
+    `---
+name: wix-backend-velo
+version: 2.0.0
+author: Wix Team
+tags:
+  - wix
+  - velo
+  - backend
+  - database
+allowed-tools: Read, Write, Bash, WixData
+---
+
+# Wix Backend - Velo Backend
+
+Create comprehensive Velo backend solutions with data management and automation.
+
+## Capabilities
+
+- Wix Data collections and queries
+- Scheduled jobs and triggers
+- Backend event handlers
+- Data hooks and validations
+- External API integrations
+
+## Output Structure
+
+\`\`\`
+backend/
+├── data.ts
+├── jobs/
+│   └── scheduled-tasks.ts
+├── events/
+│   └── data-hooks.ts
+└── services/
+    └── external-api.ts
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-velo-v1",
+        version: 1,
+        skillMd: "# Wix Velo Backend v1",
+        metadata: { name: "Wix Velo", description: "v1 - Data and jobs" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial Velo backend skill",
+      },
+    ]
+  ),
 ];
 
 // ==========================================
@@ -207,10 +439,10 @@ Build secure authentication systems with multiple provider support.
 // ==========================================
 
 const DEMO_SCENARIOS: TestScenario[] = [
-  // Skill-linked scenarios
+  // Target Group-linked scenarios
   {
     id: "scenario-react-button",
-    skillId: "skill-react-component",
+    targetGroupId: "tg-react-development",
     suiteIds: ["suite-ui-components"],
     name: "Create Button Component",
     description: "Test creating a basic button with multiple variants",
@@ -230,7 +462,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-react-modal",
-    skillId: "skill-react-component",
+    targetGroupId: "tg-react-development",
     suiteIds: ["suite-ui-components"],
     name: "Create Modal Component",
     description: "Test creating an accessible modal",
@@ -246,7 +478,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-api-crud",
-    skillId: "skill-api-endpoint",
+    targetGroupId: "tg-api-testing",
     suiteIds: ["suite-api-patterns"],
     name: "Create CRUD Endpoints",
     description: "Test generating full CRUD endpoints",
@@ -265,7 +497,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-db-ecommerce",
-    skillId: "skill-database-schema",
+    targetGroupId: "tg-full-stack",
     name: "E-commerce Schema",
     description: "Test creating a complete e-commerce schema",
     triggerPrompt: "Design a Prisma schema for an e-commerce platform.",
@@ -280,7 +512,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-test-utils",
-    skillId: "skill-unit-tests",
+    // Standalone scenario (no target group)
     name: "Generate Utility Tests",
     description: "Test generating unit tests for utility functions",
     triggerPrompt: "Generate tests for date formatting utilities.",
@@ -295,7 +527,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-auth-oauth",
-    skillId: "skill-auth-flow",
+    targetGroupId: "tg-full-stack",
     suiteIds: ["suite-auth-patterns"],
     name: "OAuth Google Integration",
     description: "Test implementing Google OAuth",
@@ -309,9 +541,10 @@ const DEMO_SCENARIOS: TestScenario[] = [
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
-  // Suite-only scenarios (no skill assigned)
+  // Suite-only scenarios (no target group assigned)
   {
     id: "scenario-wix-dashboard-stats",
+    targetGroupId: "tg-wix-dashboard",
     suiteIds: ["suite-wix-dashboard"],
     name: "Wix Dashboard Stats Widget",
     description: "Create a stats widget for Wix CLI dashboard with real-time data",
@@ -845,6 +1078,718 @@ const DEMO_AGENTS: Agent[] = [
     createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
+
+  // ==========================================
+  // Wix Vibe Agents (Site Building with AI)
+  // ==========================================
+  {
+    id: "agent-wix-vibe-site",
+    type: "custom",
+    name: "Wix Vibe - Site Builder",
+    description: "AI-powered site building agent that creates complete Wix websites from natural language descriptions",
+    icon: "globe",
+    runCommand: "npx",
+    runArgs: ["@wix/vibe-cli", "build", "--mode=site"],
+    workingDirectory: "./wix-site",
+    templateFiles: [
+      { targetPath: "wix.config.json", content: '{"type": "site", "framework": "vibe"}' },
+    ],
+    envVars: {
+      WIX_ENV: "development",
+      VIBE_MODE: "interactive",
+    },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+    capabilities: [
+      "Full site generation from prompts",
+      "Page layout creation",
+      "Section and widget placement",
+      "Theme and styling application",
+      "Responsive design",
+    ],
+    isBuiltIn: false,
+    isDefault: false,
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "agent-wix-vibe-component",
+    type: "custom",
+    name: "Wix Vibe - Component Builder",
+    description: "AI-powered component building agent that creates reusable Wix components and widgets",
+    icon: "component",
+    runCommand: "npx",
+    runArgs: ["@wix/vibe-cli", "build", "--mode=component"],
+    workingDirectory: "./wix-components",
+    templateFiles: [
+      { targetPath: "wix.config.json", content: '{"type": "component", "framework": "vibe"}' },
+    ],
+    envVars: {
+      WIX_ENV: "development",
+      VIBE_MODE: "component",
+    },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+    capabilities: [
+      "Custom component generation",
+      "Widget creation",
+      "Props and state management",
+      "Animation support",
+      "Accessibility compliance",
+    ],
+    isBuiltIn: false,
+    isDefault: false,
+    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix App Builder Agents
+  // ==========================================
+  {
+    id: "agent-wix-app-dashboard",
+    type: "custom",
+    name: "Wix App Builder - Dashboard App",
+    description: "AI agent for building Wix dashboard applications with full CRUD functionality",
+    icon: "layout-dashboard",
+    runCommand: "npx",
+    runArgs: ["@wix/app-builder", "create", "--type=dashboard"],
+    workingDirectory: "./wix-app",
+    templateFiles: [
+      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "dashboard"}' },
+      { targetPath: "tsconfig.json", content: '{"compilerOptions": {"jsx": "react-jsx", "strict": true}}' },
+    ],
+    envVars: {
+      WIX_ENV: "development",
+      APP_TYPE: "dashboard",
+    },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+    capabilities: [
+      "Dashboard page generation",
+      "Wix Design System integration",
+      "Data management with Wix SDK",
+      "Settings pages",
+      "Multi-page navigation",
+    ],
+    isBuiltIn: false,
+    isDefault: false,
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "agent-wix-app-widget",
+    type: "custom",
+    name: "Wix App Builder - Widget App",
+    description: "AI agent for building Wix widget applications that can be embedded in sites",
+    icon: "puzzle",
+    runCommand: "npx",
+    runArgs: ["@wix/app-builder", "create", "--type=widget"],
+    workingDirectory: "./wix-widget-app",
+    templateFiles: [
+      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "widget"}' },
+    ],
+    envVars: {
+      WIX_ENV: "development",
+      APP_TYPE: "widget",
+    },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+    capabilities: [
+      "Embeddable widget creation",
+      "Settings panel integration",
+      "Responsive widget layouts",
+      "Site interaction APIs",
+      "Widget SDK usage",
+    ],
+    isBuiltIn: false,
+    isDefault: false,
+    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "agent-wix-app-blocks",
+    type: "custom",
+    name: "Wix App Builder - Blocks App",
+    description: "AI agent for building Wix Blocks applications with visual components",
+    icon: "blocks",
+    runCommand: "npx",
+    runArgs: ["@wix/app-builder", "create", "--type=blocks"],
+    workingDirectory: "./wix-blocks-app",
+    templateFiles: [
+      { targetPath: "wix.config.json", content: '{"type": "app", "appType": "blocks"}' },
+    ],
+    envVars: {
+      WIX_ENV: "development",
+      APP_TYPE: "blocks",
+    },
+    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+    capabilities: [
+      "Blocks component creation",
+      "Visual panel design",
+      "Props API definition",
+      "Preset configurations",
+      "Documentation generation",
+    ],
+    isBuiltIn: false,
+    isDefault: false,
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ==========================================
+// Demo Target Groups
+// ==========================================
+
+const DEMO_TARGET_GROUPS: TargetGroup[] = [
+  {
+    id: "tg-react-development",
+    name: "React Development",
+    description: "Targets for React component development and testing",
+    targets: [
+      {
+        id: "target-react-skill",
+        type: "agent_skill",
+        skillId: "skill-react-component",
+      },
+      {
+        id: "target-claude-code",
+        type: "coding_agent",
+        agentId: "agent-claude-code",
+      },
+      {
+        id: "target-codex",
+        type: "coding_agent",
+        agentId: "agent-codex",
+      },
+    ],
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "tg-api-testing",
+    name: "API Testing Suite",
+    description: "Targets for API endpoint testing with custom prompt agents",
+    targets: [
+      {
+        id: "target-api-skill",
+        type: "agent_skill",
+        skillId: "skill-api-endpoint",
+      },
+      {
+        id: "target-api-validator",
+        type: "prompt_agent",
+        promptAgentConfig: {
+          name: "API Validator Agent",
+          description: "A prompt agent specialized in validating REST API responses",
+          systemPrompt: `You are an API validation specialist. Your job is to:
+1. Analyze API endpoint implementations
+2. Check for proper error handling
+3. Validate request/response schemas
+4. Ensure RESTful best practices are followed
+
+When reviewing code, focus on:
+- HTTP status codes
+- Request validation
+- Response consistency
+- Error messages`,
+          mcpServers: [
+            {
+              name: "api-tools",
+              command: "npx",
+              args: ["-y", "@modelcontextprotocol/server-api-tools"],
+              envVars: { API_BASE_URL: "http://localhost:3000" },
+            },
+          ],
+          modelConfig: {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            temperature: 0.3,
+            maxTokens: 4096,
+          },
+        },
+      },
+    ],
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "tg-full-stack",
+    name: "Full Stack Evaluation",
+    description: "Comprehensive targets for full-stack application testing",
+    targets: [
+      {
+        id: "target-react-fs",
+        type: "agent_skill",
+        skillId: "skill-react-component",
+      },
+      {
+        id: "target-api-fs",
+        type: "agent_skill",
+        skillId: "skill-api-endpoint",
+      },
+      {
+        id: "target-db-fs",
+        type: "agent_skill",
+        skillId: "skill-database-schema",
+      },
+      {
+        id: "target-claude-fs",
+        type: "coding_agent",
+        agentId: "agent-claude-code",
+      },
+    ],
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "tg-wix-dashboard",
+    name: "Wix Dashboard Components",
+    description: "Targets for Wix CLI dashboard page development",
+    targets: [
+      {
+        id: "target-wix-prompt",
+        type: "prompt_agent",
+        promptAgentConfig: {
+          name: "Wix Dashboard Expert",
+          description: "Specialized agent for Wix CLI dashboard development",
+          systemPrompt: `You are a Wix CLI dashboard development expert. You specialize in:
+1. Creating dashboard pages with Wix Design System
+2. Implementing stats widgets and data tables
+3. Building settings and configuration pages
+4. Using Wix SDK for data fetching
+
+Follow Wix CLI best practices:
+- Use @wix/design-system components
+- Implement proper loading states
+- Handle errors gracefully
+- Support dark/light themes`,
+          mcpServers: [
+            {
+              name: "wix-sdk",
+              command: "npx",
+              args: ["-y", "@wix/mcp-server"],
+            },
+            {
+              name: "filesystem",
+              command: "npx",
+              args: ["-y", "@modelcontextprotocol/server-filesystem", "./src"],
+            },
+          ],
+          modelConfig: {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            temperature: 0.4,
+            maxTokens: 8192,
+          },
+        },
+      },
+      {
+        id: "target-cursor-wix",
+        type: "coding_agent",
+        agentId: "agent-cursor-cli",
+      },
+    ],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Dashboard Page Target Group
+  // ==========================================
+  {
+    id: "tg-wix-dashboard-page",
+    name: "Wix Dashboard Page Development",
+    description: "All variants of Dashboard page coding skills for comprehensive evaluation",
+    targets: [
+      {
+        id: "target-dash-basic",
+        type: "agent_skill",
+        skillId: "skill-wix-dashboard-basic",
+      },
+      {
+        id: "target-dash-advanced",
+        type: "agent_skill",
+        skillId: "skill-wix-dashboard-advanced",
+      },
+      
+    ],
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Backend Target Group
+  // ==========================================
+  {
+    id: "tg-wix-backend",
+    name: "Wix Backend Development",
+    description: "All variants of Backend coding skills for HTTP Functions and Velo development",
+    targets: [
+      {
+        id: "target-backend-http",
+        type: "agent_skill",
+        skillId: "skill-wix-backend-http",
+      },
+      {
+        id: "target-backend-velo",
+        type: "agent_skill",
+        skillId: "skill-wix-backend-velo",
+      },
+    ],
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix App Builder Target Group
+  // ==========================================
+  {
+    id: "tg-wix-app-builder",
+    name: "Wix App Builder",
+    description: "All App Builder coding agents for building Wix applications",
+    targets: [
+      {
+        id: "target-app-dashboard",
+        type: "coding_agent",
+        agentId: "agent-wix-app-dashboard",
+      },
+      {
+        id: "target-app-widget",
+        type: "coding_agent",
+        agentId: "agent-wix-app-widget",
+      },
+      {
+        id: "target-app-blocks",
+        type: "coding_agent",
+        agentId: "agent-wix-app-blocks",
+      },
+    ],
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Vibe Target Group
+  // ==========================================
+  {
+    id: "tg-wix-vibe",
+    name: "Wix Vibe",
+    description: "Wix Vibe AI agents for site and component building",
+    targets: [
+      {
+        id: "target-vibe-site",
+        type: "coding_agent",
+        agentId: "agent-wix-vibe-site",
+      },
+      {
+        id: "target-vibe-component",
+        type: "coding_agent",
+        agentId: "agent-wix-vibe-component",
+      },
+    ],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Chat Target Group
+  // ==========================================
+  {
+    id: "tg-wix-chat",
+    name: "Wix Chat",
+    description: "All Wix Chat prompt agent variants with MCP integration",
+    targets: [
+      {
+        id: "target-chat-general",
+        type: "prompt_agent",
+        promptAgentId: "pa-wix-chat-general",
+      },
+      {
+        id: "target-chat-dashboard",
+        type: "prompt_agent",
+        promptAgentId: "pa-wix-chat-dashboard",
+      },
+      {
+        id: "target-chat-backend",
+        type: "prompt_agent",
+        promptAgentId: "pa-wix-chat-backend",
+      },
+    ],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ==========================================
+// Demo Prompt Agents
+// ==========================================
+
+const DEMO_PROMPT_AGENTS: PromptAgent[] = [
+  {
+    id: "pa-react-specialist",
+    name: "React Specialist",
+    description: "An expert React developer specialized in modern React patterns, hooks, and TypeScript.",
+    systemPrompt: `You are an expert React developer. Your specialties include:
+1. Modern React patterns (hooks, context, suspense)
+2. TypeScript with strict mode
+3. Component composition and reusability
+4. Performance optimization with React.memo, useMemo, useCallback
+5. Testing with React Testing Library
+
+When generating code:
+- Always use functional components with TypeScript
+- Include proper type definitions
+- Add JSDoc comments for complex logic
+- Follow accessibility best practices`,
+    mcpServers: [
+      {
+        name: "filesystem",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-filesystem", "./src"],
+      },
+    ],
+    modelConfig: {
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      temperature: 0.3,
+      maxTokens: 8192,
+    },
+    tags: ["react", "typescript", "frontend"],
+    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "pa-api-architect",
+    name: "API Architect",
+    description: "Designs and implements RESTful APIs with best practices for security and performance.",
+    systemPrompt: `You are an API architecture expert. You specialize in:
+1. RESTful API design
+2. OpenAPI/Swagger specifications
+3. Authentication and authorization patterns
+4. Rate limiting and caching strategies
+5. Error handling and status codes
+
+When designing APIs:
+- Follow REST conventions strictly
+- Use proper HTTP methods and status codes
+- Include comprehensive error responses
+- Document all endpoints with OpenAPI`,
+    mcpServers: [
+      {
+        name: "api-tools",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-api-tools"],
+        envVars: { API_BASE_URL: "http://localhost:3000" },
+      },
+    ],
+    modelConfig: {
+      provider: "openai",
+      model: "gpt-4-turbo-preview",
+      temperature: 0.2,
+      maxTokens: 4096,
+    },
+    tags: ["api", "backend", "rest"],
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "pa-code-reviewer",
+    name: "Code Reviewer",
+    description: "Performs thorough code reviews focusing on quality, security, and best practices.",
+    systemPrompt: `You are a senior code reviewer. Your reviews focus on:
+1. Code quality and maintainability
+2. Security vulnerabilities
+3. Performance issues
+4. Best practices adherence
+5. Testing coverage
+
+When reviewing:
+- Provide specific, actionable feedback
+- Explain why changes are recommended
+- Prioritize issues by severity
+- Suggest concrete improvements`,
+    mcpServers: [],
+    modelConfig: {
+      provider: "anthropic",
+      model: "claude-3-opus-20240229",
+      temperature: 0.1,
+      maxTokens: 4096,
+    },
+    tags: ["review", "quality", "security"],
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // ==========================================
+  // Wix Chat Prompt Agents
+  // ==========================================
+  {
+    id: "pa-wix-chat-general",
+    name: "Wix Chat - General",
+    description: "General-purpose Wix development assistant with access to Wix MCP for all development tasks.",
+    systemPrompt: `You are a Wix development expert assistant. You help developers with all aspects of Wix application development.
+
+Your expertise includes:
+1. Wix CLI and project setup
+2. Dashboard page development
+3. Backend development (HTTP Functions, Velo)
+4. Wix SDK and APIs
+5. Wix Design System components
+6. App deployment and publishing
+
+Guidelines:
+- Always use @wix/design-system for UI components
+- Follow Wix best practices for performance
+- Include proper error handling
+- Support both TypeScript and JavaScript
+- Provide complete, working code examples
+
+When helping users:
+- Ask clarifying questions when requirements are unclear
+- Suggest the most appropriate Wix APIs for the task
+- Explain trade-offs between different approaches
+- Include relevant documentation links`,
+    mcpServers: [
+      {
+        name: "wix-mcp",
+        command: "npx",
+        args: ["-y", "@anthropic-ai/mcp-wix"],
+        envVars: { WIX_ENV: "development" },
+      },
+      {
+        name: "filesystem",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-filesystem", "./src"],
+      },
+    ],
+    modelConfig: {
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      temperature: 0.3,
+      maxTokens: 8192,
+    },
+    tags: ["wix", "chat", "general", "mcp"],
+    createdAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "pa-wix-chat-dashboard",
+    name: "Wix Chat - Dashboard Expert",
+    description: "Specialized Wix assistant focused on dashboard page development with deep Design System knowledge.",
+    systemPrompt: `You are a Wix Dashboard development expert. You specialize exclusively in creating beautiful, functional dashboard pages for Wix applications.
+
+Your deep expertise includes:
+1. Wix Dashboard page architecture
+2. @wix/design-system component library mastery
+3. Dashboard widgets (Stats, Tables, Cards, Charts)
+4. Settings pages and configuration UIs
+5. Modal workflows and form patterns
+6. Dark/light theme implementation
+
+Best Practices:
+- Always use proper loading states with <Loader />
+- Implement error boundaries and fallback UIs
+- Use <Page.Header />, <Page.Content /> for structure
+- Apply consistent spacing with design tokens
+- Support keyboard navigation
+- Test with screen readers
+
+Code Patterns:
+- Use React Query or SWR for data fetching
+- Implement optimistic updates
+- Cache appropriately
+- Handle offline states
+
+When generating code:
+- Include all necessary imports from @wix/design-system
+- Use TypeScript with proper type annotations
+- Add accessibility attributes (aria-*, role)
+- Include loading, error, and empty states`,
+    mcpServers: [
+      {
+        name: "wix-mcp",
+        command: "npx",
+        args: ["-y", "@anthropic-ai/mcp-wix"],
+        envVars: { WIX_ENV: "development" },
+      },
+      {
+        name: "wix-design-docs",
+        command: "npx",
+        args: ["-y", "@wix/design-system-mcp"],
+      },
+    ],
+    modelConfig: {
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      temperature: 0.2,
+      maxTokens: 8192,
+    },
+    tags: ["wix", "chat", "dashboard", "design-system", "mcp"],
+    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "pa-wix-chat-backend",
+    name: "Wix Chat - Backend Expert",
+    description: "Specialized Wix assistant focused on backend development including HTTP Functions, Velo, and data management.",
+    systemPrompt: `You are a Wix Backend development expert. You specialize exclusively in server-side development for Wix applications.
+
+Your deep expertise includes:
+1. Wix HTTP Functions
+2. Velo backend modules
+3. Wix Data collections and queries
+4. Scheduled jobs and triggers
+5. Authentication and permissions
+6. External API integrations
+7. Secrets management
+
+HTTP Functions Best Practices:
+- Use proper HTTP methods (GET, POST, PUT, DELETE)
+- Validate all input parameters
+- Return appropriate status codes
+- Handle errors gracefully
+- Use consistent response formats
+
+Wix Data Best Practices:
+- Create efficient queries with proper indexes
+- Use bulk operations for large datasets
+- Implement proper permissions
+- Handle concurrent updates
+- Use references for related data
+
+Security Guidelines:
+- Never expose sensitive data in responses
+- Validate and sanitize all inputs
+- Use wix-secrets-backend for API keys
+- Implement rate limiting when needed
+- Log security-relevant events
+
+When generating code:
+- Include comprehensive error handling
+- Add proper TypeScript types
+- Document API contracts
+- Include example requests/responses`,
+    mcpServers: [
+      {
+        name: "wix-mcp",
+        command: "npx",
+        args: ["-y", "@anthropic-ai/mcp-wix"],
+        envVars: { WIX_ENV: "development" },
+      },
+      {
+        name: "wix-data-mcp",
+        command: "npx",
+        args: ["-y", "@wix/data-mcp"],
+      },
+    ],
+    modelConfig: {
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      temperature: 0.2,
+      maxTokens: 8192,
+    },
+    tags: ["wix", "chat", "backend", "http", "velo", "mcp"],
+    createdAt: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 // ==========================================
@@ -855,6 +1800,8 @@ export function generateDemoData(): {
   skills: Skill[];
   testScenarios: TestScenario[];
   testSuites: TestSuite[];
+  targetGroups: TargetGroup[];
+  promptAgents: PromptAgent[];
   evalRuns: EvalRun[];
   agents: Agent[];
   codingTools: CodingTool[];
@@ -863,6 +1810,8 @@ export function generateDemoData(): {
     skills: DEMO_SKILLS,
     testScenarios: DEMO_SCENARIOS,
     testSuites: DEMO_SUITES,
+    targetGroups: DEMO_TARGET_GROUPS,
+    promptAgents: DEMO_PROMPT_AGENTS,
     evalRuns: generateEvalRuns(),
     agents: DEMO_AGENTS,
     codingTools: [...BUILTIN_TOOLS],

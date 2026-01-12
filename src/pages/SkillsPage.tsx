@@ -12,10 +12,7 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
-  TestTube2,
-  ChevronRight,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
 import { Card, CardContent } from "@components/ui/Card";
@@ -24,7 +21,7 @@ import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
-import { useStore, useSkills, useSkillTestScenarios } from "@lib/store";
+import { useStore, useSkills } from "@lib/store";
 import type { Skill } from "@lib/types";
 import { parseSkillMd, validateSkillMd, extractSkillContent } from "@lib/utils/skillParser";
 import { formatRelativeTime, cn } from "@lib/utils";
@@ -69,7 +66,6 @@ Show concrete examples of using this skill.
 `;
 
 export function SkillsPage() {
-  const navigate = useNavigate();
   const skills = useSkills();
   const { addSkill, updateSkill, deleteSkill, duplicateSkill } = useStore();
 
@@ -206,7 +202,6 @@ export function SkillsPage() {
               onDelete={() => deleteSkill(skill.id)}
               onExport={() => handleExport(skill)}
               onViewVersions={() => setShowVersions(skill.id)}
-              onNavigateToScenarios={() => navigate(`/scenarios?skillId=${skill.id}`)}
             />
           ))}
         </motion.div>
@@ -364,7 +359,6 @@ interface SkillCardProps {
   onDelete: () => void;
   onExport: () => void;
   onViewVersions: () => void;
-  onNavigateToScenarios: () => void;
 }
 
 function SkillCard({
@@ -374,9 +368,7 @@ function SkillCard({
   onDelete,
   onExport,
   onViewVersions,
-  onNavigateToScenarios,
 }: SkillCardProps) {
-  const scenarios = useSkillTestScenarios(skill.id);
 
   return (
     <motion.div variants={item}>
@@ -420,11 +412,6 @@ function SkillCard({
                   </div>
                 )}
 
-                <div className="flex items-center gap-1 text-gray-500">
-                  <TestTube2 className="w-4 h-4" />
-                  <span>{scenarios.length} test scenario{scenarios.length !== 1 && "s"}</span>
-                </div>
-
                 <span className="text-gray-400">
                   Updated {formatRelativeTime(skill.updatedAt)}
                 </span>
@@ -433,15 +420,6 @@ function SkillCard({
 
             {/* Actions */}
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onNavigateToScenarios}
-              >
-                <TestTube2 className="w-4 h-4 mr-1" />
-                Scenarios
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
               <button
                 onClick={onViewVersions}
                 className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"

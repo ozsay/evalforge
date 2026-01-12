@@ -18,6 +18,7 @@ import {
   ChevronRight,
   GripVertical,
   FolderKanban,
+  Layers,
   Tag,
   X,
 } from "lucide-react";
@@ -29,7 +30,7 @@ import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
-import { useStore, useSkills, useTestScenarios, useTestSuites } from "@lib/store";
+import { useStore, useTestScenarios, useTestSuites, useTargetGroups } from "@lib/store";
 import type {
   TestScenario,
   CreateTestScenarioInput,
@@ -102,17 +103,17 @@ const ASSERTION_TYPES: {
   },
 ];
 
-type FilterMode = "all" | "skill" | "suite" | "standalone";
+type FilterMode = "all" | "suite" | "targetGroup" | "standalone";
 
 export function TestScenariosPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const skillIdFilter = searchParams.get("skillId");
   const suiteIdFilter = searchParams.get("suiteId");
+  const targetGroupIdFilter = searchParams.get("targetGroupId");
 
-  const skills = useSkills();
   const allScenarios = useTestScenarios();
   const testSuites = useTestSuites();
+  const targetGroups = useTargetGroups();
   const {
     addTestScenario,
     updateTestScenario,
@@ -122,24 +123,24 @@ export function TestScenariosPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>(
-    skillIdFilter ? "skill" : suiteIdFilter ? "suite" : "all"
+    suiteIdFilter ? "suite" : targetGroupIdFilter ? "targetGroup" : "all"
   );
-  const [selectedSkillId, setSelectedSkillId] = useState(skillIdFilter || "");
   const [selectedSuiteId, setSelectedSuiteId] = useState(suiteIdFilter || "");
+  const [selectedTargetGroupId, setSelectedTargetGroupId] = useState(targetGroupIdFilter || "");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScenario, setEditingScenario] = useState<TestScenario | null>(null);
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
 
-  // Form state - skillId can be undefined for standalone scenarios
+  // Form state - targetGroupId can be undefined for standalone scenarios
   type FormDataType = {
-    skillId?: string;
+    targetGroupId?: string;
     name: string;
     description: string;
     triggerPrompt: string;
   };
   const [formData, setFormData] = useState<FormDataType>({
-    skillId: undefined,
+    targetGroupId: undefined,
     name: "",
     description: "",
     triggerPrompt: "",
@@ -170,12 +171,12 @@ export function TestScenariosPage() {
 
       // Filter mode
       let matchesFilter = true;
-      if (filterMode === "skill" && selectedSkillId) {
-        matchesFilter = scenario.skillId === selectedSkillId;
-      } else if (filterMode === "suite" && selectedSuiteId) {
+      if (filterMode === "suite" && selectedSuiteId) {
         matchesFilter = (scenario.suiteIds || []).includes(selectedSuiteId);
+      } else if (filterMode === "targetGroup" && selectedTargetGroupId) {
+        matchesFilter = scenario.targetGroupId === selectedTargetGroupId;
       } else if (filterMode === "standalone") {
-        matchesFilter = !scenario.skillId && (!scenario.suiteIds || scenario.suiteIds.length === 0);
+        matchesFilter = !scenario.targetGroupId && (!scenario.suiteIds || scenario.suiteIds.length === 0);
       }
 
       // Tag filter
@@ -185,14 +186,14 @@ export function TestScenariosPage() {
 
       return matchesSearch && matchesFilter && matchesTags;
     });
-  }, [allScenarios, searchQuery, filterMode, selectedSkillId, selectedSuiteId, selectedTags]);
+  }, [allScenarios, searchQuery, filterMode, selectedSuiteId, selectedTargetGroupId, selectedTags]);
 
-  const getSkillName = (skillId?: string) =>
-    skillId ? skills.find((s) => s.id === skillId)?.name || "Unknown Skill" : undefined;
+  const getTargetGroupName = (targetGroupId?: string) =>
+    targetGroupId ? targetGroups.find((g) => g.id === targetGroupId)?.name || "Unknown Group" : undefined;
 
   const openCreateModal = () => {
     setFormData({
-      skillId: filterMode === "skill" && selectedSkillId ? selectedSkillId : undefined,
+      targetGroupId: filterMode === "targetGroup" && selectedTargetGroupId ? selectedTargetGroupId : undefined,
       name: "",
       description: "",
       triggerPrompt: "",
@@ -208,7 +209,7 @@ export function TestScenariosPage() {
 
   const openEditModal = (scenario: TestScenario) => {
     setFormData({
-      skillId: scenario.skillId,
+      targetGroupId: scenario.targetGroupId,
       name: scenario.name,
       description: scenario.description,
       triggerPrompt: scenario.triggerPrompt,
@@ -227,7 +228,7 @@ export function TestScenariosPage() {
 
     const scenarioInput: CreateTestScenarioInput = {
       ...formData,
-      skillId: formData.skillId || undefined, // Don't send empty string
+      targetGroupId: formData.targetGroupId || undefined, // Don't send empty string
       expectedFiles,
       assertions,
       tags: formTags.length > 0 ? formTags : undefined,
@@ -342,7 +343,7 @@ export function TestScenariosPage() {
     <div className="p-8">
       <PageHeader
         title="Test Scenarios"
-        description="Define test cases and assertions for your Agent Skills"
+        description="Define test cases and assertions for your Target Groups"
         actions={
           <Button onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
             New Scenario
@@ -365,23 +366,23 @@ export function TestScenariosPage() {
             value={filterMode}
             onChange={(e) => {
               setFilterMode(e.target.value as FilterMode);
-              setSelectedSkillId("");
               setSelectedSuiteId("");
+              setSelectedTargetGroupId("");
             }}
             options={[
               { value: "all", label: "All Scenarios" },
-              { value: "skill", label: "By Skill" },
+              { value: "targetGroup", label: "By Target Group" },
               { value: "suite", label: "By Suite" },
               { value: "standalone", label: "Standalone Only" },
             ]}
           />
-          {filterMode === "skill" && (
+          {filterMode === "targetGroup" && (
             <Select
-              value={selectedSkillId}
-              onChange={(e) => setSelectedSkillId(e.target.value)}
+              value={selectedTargetGroupId}
+              onChange={(e) => setSelectedTargetGroupId(e.target.value)}
               options={[
-                { value: "", label: "Select Skill..." },
-                ...skills.map((s) => ({ value: s.id, label: s.name })),
+                { value: "", label: "Select Target Group..." },
+                ...targetGroups.map((g) => ({ value: g.id, label: g.name })),
               ]}
             />
           )}
@@ -429,7 +430,7 @@ export function TestScenariosPage() {
         <EmptyState
           icon={TestTube2}
           title="No test scenarios yet"
-          description="Test scenarios define how to evaluate your Agent Skills with specific assertions."
+          description="Test scenarios define how to evaluate your Target Groups with specific assertions."
           actionLabel="Create Scenario"
           onAction={openCreateModal}
         />
@@ -468,9 +469,10 @@ export function TestScenariosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-gray-900">{scenario.name}</h3>
-                        {scenario.skillId ? (
-                          <Badge variant="gray" size="sm">
-                            {getSkillName(scenario.skillId)}
+                        {scenario.targetGroupId ? (
+                          <Badge variant="primary" size="sm">
+                            <Layers className="w-3 h-3 mr-1" />
+                            {getTargetGroupName(scenario.targetGroupId)}
                           </Badge>
                         ) : (
                           <Badge variant="warning" size="sm">
@@ -681,12 +683,12 @@ export function TestScenariosPage() {
 
             <TabsContent value="basic" className="space-y-4">
               <Select
-                label="Skill (Optional)"
-                value={formData.skillId || ""}
-                onChange={(e) => setFormData({ ...formData, skillId: e.target.value || undefined })}
+                label="Target Group"
+                value={formData.targetGroupId || ""}
+                onChange={(e) => setFormData({ ...formData, targetGroupId: e.target.value || undefined })}
                 options={[
-                  { value: "", label: "No skill (standalone)" },
-                  ...skills.map((s) => ({ value: s.id, label: s.name })),
+                  { value: "", label: "No target group (standalone)" },
+                  ...targetGroups.map((g) => ({ value: g.id, label: g.name })),
                 ]}
               />
               <Input
@@ -704,11 +706,11 @@ export function TestScenariosPage() {
               />
               <Textarea
                 label="Trigger Prompt"
-                placeholder="The prompt that triggers the skill..."
+                placeholder="The prompt that will be sent to the target agents..."
                 rows={4}
                 value={formData.triggerPrompt}
                 onChange={(e) => setFormData({ ...formData, triggerPrompt: e.target.value })}
-                hint="This is the user message that will trigger the skill"
+                hint="This is the user message that will be sent to target agents"
               />
 
               {/* Tags */}
@@ -787,7 +789,7 @@ export function TestScenariosPage() {
             <TabsContent value="files" className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  Define files expected to be created by the skill
+                  Define files expected to be created by the target agents
                 </p>
                 <Button variant="secondary" size="sm" onClick={addExpectedFile}>
                   <Plus className="w-4 h-4 mr-1" />

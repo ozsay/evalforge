@@ -261,6 +261,7 @@ export interface ExpectedFile {
 export interface TestScenario {
   id: string;
   /** 
+   * @deprecated Use targetGroupId instead. Kept for backward compatibility.
    * The Skill this scenario tests.
    * 
    * BEST PRACTICE: Each scenario should belong to exactly one skill.
@@ -275,6 +276,17 @@ export interface TestScenario {
    * - The agent's default behavior is tested without skill context
    */
   skillId?: string;
+  /**
+   * The Target Group this scenario is bound to.
+   * 
+   * Target Groups contain one or more targets (Skills, Agents, or Prompt Agents)
+   * that this scenario should be evaluated against.
+   * 
+   * When running evaluation:
+   * - Matrix mode: Run against all targets in the group
+   * - Selective mode: User picks which targets to evaluate
+   */
+  targetGroupId?: string;
   /** Test suites this scenario is included in (for organization/grouping) */
   suiteIds?: string[];
   name: string;
@@ -745,6 +757,147 @@ export interface TrendPoint {
   totalTests: number;
   skillVersion?: string;
 }
+
+// ==========================================
+// Target Group Types
+// ==========================================
+//
+// Target Groups unify different testable entities:
+// - agent_skill: References an existing Skill (SKILL.md)
+// - coding_agent: References an existing Agent (CLI command)
+// - prompt_agent: Inline configuration with systemPrompt + MCP servers
+//
+// Test Scenarios are bound to Target Groups instead of directly to Skills.
+//
+// ==========================================
+
+/**
+ * Target type discriminator for polymorphic Target entity.
+ */
+export type TargetType = "agent_skill" | "coding_agent" | "prompt_agent";
+
+/**
+ * MCP Server Configuration for Prompt Agents.
+ * Defines how to connect to an MCP server.
+ */
+export interface MCPServerConfig {
+  /** Unique name for this MCP server */
+  name: string;
+  /** Command to start the MCP server */
+  command: string;
+  /** Command line arguments */
+  args?: string[];
+  /** Environment variables for the server process */
+  envVars?: Record<string, string>;
+}
+
+/**
+ * Prompt Agent Configuration.
+ * An inline agent definition with a system prompt and optional MCP servers.
+ * Unlike Coding Agents, these don't have a CLI command - they're pure prompt-based.
+ */
+export interface PromptAgentConfig {
+  /** Display name for this prompt agent */
+  name: string;
+  /** Optional description */
+  description?: string;
+  /** The system prompt that defines agent behavior */
+  systemPrompt: string;
+  /** MCP servers this agent can connect to */
+  mcpServers: MCPServerConfig[];
+  /** Optional model configuration override */
+  modelConfig?: ModelConfig;
+}
+
+/**
+ * A standalone Prompt Agent entity.
+ * Can be managed independently and referenced by Target Groups.
+ */
+export interface PromptAgent {
+  id: string;
+  name: string;
+  description: string;
+  /** The system prompt that defines agent behavior */
+  systemPrompt: string;
+  /** MCP servers this agent can connect to */
+  mcpServers: MCPServerConfig[];
+  /** Model configuration for this agent */
+  modelConfig: ModelConfig;
+  /** Tags for organization */
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreatePromptAgentInput = Omit<PromptAgent, "id" | "createdAt" | "updatedAt">;
+export type UpdatePromptAgentInput = Partial<CreatePromptAgentInput>;
+
+/**
+ * A Target represents a testable entity within a Target Group.
+ * 
+ * Polymorphic type - exactly one of the reference fields should be set
+ * based on the `type` discriminator.
+ * 
+ * @example
+ * // Agent Skill target
+ * { id: "t1", type: "agent_skill", skillId: "skill-123" }
+ * 
+ * // Coding Agent target
+ * { id: "t2", type: "coding_agent", agentId: "agent-456" }
+ * 
+ * // Prompt Agent target (reference to standalone entity)
+ * { id: "t3", type: "prompt_agent", promptAgentId: "pa-789" }
+ * 
+ * // Prompt Agent target (inline config - legacy/quick setup)
+ * { id: "t4", type: "prompt_agent", promptAgentConfig: { name: "...", systemPrompt: "...", mcpServers: [] } }
+ */
+export interface Target {
+  id: string;
+  type: TargetType;
+  /** For agent_skill: Reference to a Skill entity */
+  skillId?: string;
+  /** For coding_agent: Reference to an Agent entity */
+  agentId?: string;
+  /** For prompt_agent: Reference to a PromptAgent entity */
+  promptAgentId?: string;
+  /** For prompt_agent: Inline prompt agent configuration (alternative to promptAgentId) */
+  promptAgentConfig?: PromptAgentConfig;
+}
+
+/**
+ * A Target Group is a collection of testable targets.
+ * 
+ * Test Scenarios are bound to Target Groups. When running an evaluation,
+ * you can either run against all targets in the group (matrix mode)
+ * or select specific targets to evaluate.
+ * 
+ * @example
+ * ```typescript
+ * {
+ *   id: "tg-1",
+ *   name: "React Development",
+ *   description: "Targets for React component development",
+ *   targets: [
+ *     { id: "t1", type: "agent_skill", skillId: "skill-react" },
+ *     { id: "t2", type: "coding_agent", agentId: "agent-claude-code" }
+ *   ]
+ * }
+ * ```
+ */
+export interface TargetGroup {
+  id: string;
+  name: string;
+  description: string;
+  targets: Target[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateTargetGroupInput = Omit<TargetGroup, "id" | "createdAt" | "updatedAt">;
+export type UpdateTargetGroupInput = Partial<CreateTargetGroupInput>;
+
+export type CreateTargetInput = Omit<Target, "id">;
+export type UpdateTargetInput = Partial<CreateTargetInput>;
 
 // ==========================================
 // Type Aliases (Backward Compatibility)
