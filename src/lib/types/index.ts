@@ -103,6 +103,56 @@ export interface SkillVersion {
  * 
  * @see https://agentskills.io/specification
  */
+/**
+ * Sync source type for Skills.
+ * - "none": Unsynced (default, managed locally)
+ * - "github": Synchronized from a GitHub repository
+ * - "prompthub": Synchronized from internal PromptHub tool
+ */
+export type SkillSyncSourceType = "none" | "github" | "prompthub";
+
+/**
+ * GitHub sync configuration for Skills.
+ */
+export interface GitHubSyncSource {
+  type: "github";
+  /** Repository in format "owner/repo" */
+  repository: string;
+  /** Branch to sync from (default: main) */
+  branch?: string;
+  /** Path to SKILL.md file in the repository */
+  path: string;
+  /** Last commit SHA that was synced */
+  lastSyncCommit?: string;
+  /** When the skill was last synced */
+  lastSyncedAt?: string;
+}
+
+/**
+ * PromptHub sync configuration for Skills.
+ */
+export interface PromptHubSyncSource {
+  type: "prompthub";
+  /** PromptHub skill/prompt ID */
+  promptHubId: string;
+  /** Version from PromptHub (if versioned) */
+  version?: string;
+  /** When the skill was last synced */
+  lastSyncedAt?: string;
+}
+
+/**
+ * No sync - locally managed skill.
+ */
+export interface NoSyncSource {
+  type: "none";
+}
+
+/**
+ * Union type for all sync source configurations.
+ */
+export type SkillSyncSource = GitHubSyncSource | PromptHubSyncSource | NoSyncSource;
+
 export interface Skill {
   id: string;
   name: string;
@@ -117,6 +167,8 @@ export interface Skill {
   versions: SkillVersion[];
   /** IDs of TestScenarios that test this skill (1:N relationship) */
   testScenarios: string[];
+  /** Sync source configuration (default: { type: "none" }) */
+  syncSource?: SkillSyncSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +177,7 @@ export type CreateSkillInput = {
   name: string;
   description: string;
   skillMd: string;
+  syncSource?: SkillSyncSource;
 };
 
 export type UpdateSkillInput = Partial<CreateSkillInput>;

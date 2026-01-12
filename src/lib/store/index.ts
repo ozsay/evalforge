@@ -1092,14 +1092,22 @@ export const useStore = create<AppState>()(
         const persisted = persistedState as Partial<AppState> | undefined;
         
         // Always use fresh demo data for skills, testScenarios, evalRuns
-        // Merge persisted agents with built-in agents (avoid duplicates)
+        // Merge persisted agents with built-in agents and demo custom agents (avoid duplicates)
         const persistedAgents = persisted?.agents || [];
         const builtInIds = BUILTIN_AGENTS.map(a => a.id);
-        const customAgents = persistedAgents.filter(a => !builtInIds.includes(a.id) && !a.isBuiltIn);
+        
+        // Get demo custom agents (not built-in)
+        const demoCustomAgents = demoData.agents.filter(a => !a.isBuiltIn);
+        const demoCustomIds = demoCustomAgents.map(a => a.id);
+        
+        // User-created custom agents (not built-in and not from demo)
+        const userCustomAgents = persistedAgents.filter(
+          a => !builtInIds.includes(a.id) && !a.isBuiltIn && !demoCustomIds.includes(a.id)
+        );
         
         return {
           ...currentState,
-          agents: [...BUILTIN_AGENTS, ...customAgents],
+          agents: [...BUILTIN_AGENTS, ...demoCustomAgents, ...userCustomAgents],
           settings: persisted?.settings || currentState.settings,
         };
       },

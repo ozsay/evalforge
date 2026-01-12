@@ -7,6 +7,7 @@ import { generateId } from "@lib/utils";
 import type {
   Skill,
   SkillVersion,
+  SkillSyncSource,
   TestScenario,
   TestSuite,
   TargetGroup,
@@ -31,7 +32,8 @@ function createSkill(
   name: string,
   description: string,
   skillMd: string,
-  versions: Omit<SkillVersion, "skillId">[]
+  versions: Omit<SkillVersion, "skillId">[],
+  syncSource?: SkillSyncSource
 ): Skill {
   const now = new Date();
   return {
@@ -45,6 +47,7 @@ function createSkill(
     },
     versions: versions.map((v) => ({ ...v, skillId: id })),
     testScenarios: [],
+    syncSource,
     createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   };
@@ -105,7 +108,15 @@ src/components/{ComponentName}/
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         notes: "Added TypeScript support",
       },
-    ]
+    ],
+    {
+      type: "github",
+      repository: "evalforge/skills-library",
+      branch: "main",
+      path: "skills/react-component/SKILL.md",
+      lastSyncCommit: "a1b2c3d4e5f6",
+      lastSyncedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    }
   ),
   createSkill(
     "skill-api-endpoint",
@@ -261,7 +272,13 @@ src/dashboard/pages/{PageName}/
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         notes: "Added more widget types",
       },
-    ]
+    ],
+    {
+      type: "prompthub",
+      promptHubId: "wix-dashboard-basic-v2",
+      version: "2.1.0",
+      lastSyncedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    }
   ),
   createSkill(
     "skill-wix-dashboard-advanced",
@@ -315,7 +332,15 @@ src/dashboard/pages/{PageName}/
         createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
         notes: "Initial advanced dashboard skill",
       },
-    ]
+    ],
+    {
+      type: "github",
+      repository: "wix-private/dashboard-skills",
+      branch: "main",
+      path: "advanced/SKILL.md",
+      lastSyncCommit: "f8e7d6c5b4a3",
+      lastSyncedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    }
   ),
 
   // ==========================================
@@ -378,7 +403,13 @@ backend/
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         notes: "Added middleware and better error handling",
       },
-    ]
+    ],
+    {
+      type: "prompthub",
+      promptHubId: "wix-http-functions",
+      version: "2.0.0",
+      lastSyncedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    }
   ),
   createSkill(
     "skill-wix-backend-velo",

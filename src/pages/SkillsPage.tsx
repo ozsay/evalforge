@@ -12,17 +12,21 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
+  Github,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
 import { Card, CardContent } from "@components/ui/Card";
-import { Input, Textarea } from "@components/ui/Input";
+import { Input, Textarea, Select } from "@components/ui/Input";
 import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 import { useStore, useSkills } from "@lib/store";
-import type { Skill } from "@lib/types";
+import type { Skill, SkillSyncSource, SkillSyncSourceType } from "@lib/types";
 import { parseSkillMd, validateSkillMd, extractSkillContent } from "@lib/utils/skillParser";
 import { formatRelativeTime, cn } from "@lib/utils";
 
@@ -79,6 +83,13 @@ export function SkillsPage() {
   const [customName, setCustomName] = useState("");
   const [customDescription, setCustomDescription] = useState("");
 
+  // Sync source state
+  const [syncSourceType, setSyncSourceType] = useState<SkillSyncSourceType>("none");
+  const [githubRepo, setGithubRepo] = useState("");
+  const [githubBranch, setGithubBranch] = useState("main");
+  const [githubPath, setGithubPath] = useState("SKILL.md");
+  const [promptHubId, setPromptHubId] = useState("");
+
   // Validation state
   const validation = useMemo(() => validateSkillMd(skillMd), [skillMd]);
   const parsedMetadata = useMemo(() => parseSkillMd(skillMd), [skillMd]);
@@ -93,6 +104,11 @@ export function SkillsPage() {
     setSkillMd(SKILL_TEMPLATE);
     setCustomName("");
     setCustomDescription("");
+    setSyncSourceType("none");
+    setGithubRepo("");
+    setGithubBranch("main");
+    setGithubPath("SKILL.md");
+    setPromptHubId("");
     setEditingSkill(null);
     setIsModalOpen(true);
   };
@@ -101,8 +117,37 @@ export function SkillsPage() {
     setSkillMd(skill.skillMd);
     setCustomName(skill.name);
     setCustomDescription(skill.description);
+    // Load sync source settings
+    const syncSource = skill.syncSource || { type: "none" as const };
+    setSyncSourceType(syncSource.type);
+    if (syncSource.type === "github") {
+      setGithubRepo(syncSource.repository);
+      setGithubBranch(syncSource.branch || "main");
+      setGithubPath(syncSource.path);
+    } else if (syncSource.type === "prompthub") {
+      setPromptHubId(syncSource.promptHubId);
+    }
     setEditingSkill(skill);
     setIsModalOpen(true);
+  };
+
+  const buildSyncSource = (): SkillSyncSource => {
+    switch (syncSourceType) {
+      case "github":
+        return {
+          type: "github",
+          repository: githubRepo,
+          branch: githubBranch || "main",
+          path: githubPath || "SKILL.md",
+        };
+      case "prompthub":
+        return {
+          type: "prompthub",
+          promptHubId: promptHubId,
+        };
+      default:
+        return { type: "none" };
+    }
   };
 
   const handleSubmit = () => {
@@ -110,18 +155,21 @@ export function SkillsPage() {
 
     const name = customName || parsedMetadata.name || "Untitled Skill";
     const description = customDescription || parsedMetadata.description || "";
+    const syncSource = buildSyncSource();
 
     if (editingSkill) {
       updateSkill(editingSkill.id, {
         name,
         description,
         skillMd,
+        syncSource,
       });
     } else {
       addSkill({
         name,
         description,
         skillMd,
+        syncSource,
       });
     }
     setIsModalOpen(false);
@@ -221,6 +269,7 @@ export function SkillsPage() {
               <TabsTrigger value="editor">SKILL.md Editor</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="metadata">Metadata</TabsTrigger>
+              <TabsTrigger value="sync">Sync Source</TabsTrigger>
             </TabsList>
 
             <TabsContent value="editor" className="space-y-4">
@@ -320,6 +369,100 @@ export function SkillsPage() {
                 hint={`From frontmatter: ${parsedMetadata.description || "Not set"}`}
               />
             </TabsContent>
+
+            <TabsContent value="sync" className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Configure where this skill's SKILL.md content is synchronized from:
+              </p>
+
+              <Select
+                label="Sync Source"
+                value={syncSourceType}
+                onChange={(e) => setSyncSourceType(e.target.value as SkillSyncSourceType)}
+                options={[
+                  { value: "none", label: "Unsynced (Local only)" },
+                  { value: "github", label: "GitHub Repository" },
+                  { value: "prompthub", label: "PromptHub (Internal)" },
+                ]}
+              />
+
+              {syncSourceType === "github" && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 text-gray-700 mb-2">
+                    <Github className="w-5 h-5" />
+                    <span className="font-medium">GitHub Configuration</span>
+                  </div>
+                  <Input
+                    label="Repository"
+                    placeholder="owner/repo (e.g., wix/skills-library)"
+                    value={githubRepo}
+                    onChange={(e) => setGithubRepo(e.target.value)}
+                    hint="The GitHub repository containing the SKILL.md file"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Branch"
+                      placeholder="main"
+                      value={githubBranch}
+                      onChange={(e) => setGithubBranch(e.target.value)}
+                    />
+                    <Input
+                      label="Path to SKILL.md"
+                      placeholder="skills/my-skill/SKILL.md"
+                      value={githubPath}
+                      onChange={(e) => setGithubPath(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<RefreshCw className="w-4 h-4" />}
+                    onClick={() => {
+                      // TODO: Implement actual sync
+                      alert("Sync from GitHub would fetch the latest SKILL.md content");
+                    }}
+                  >
+                    Sync Now
+                  </Button>
+                </div>
+              )}
+
+              {syncSourceType === "prompthub" && (
+                <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700 mb-2">
+                    <Cloud className="w-5 h-5" />
+                    <span className="font-medium">PromptHub Configuration</span>
+                  </div>
+                  <Input
+                    label="PromptHub ID"
+                    placeholder="e.g., wix-dashboard-v2"
+                    value={promptHubId}
+                    onChange={(e) => setPromptHubId(e.target.value)}
+                    hint="The unique identifier for this skill in PromptHub"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<RefreshCw className="w-4 h-4" />}
+                    onClick={() => {
+                      // TODO: Implement actual sync
+                      alert("Sync from PromptHub would fetch the latest content");
+                    }}
+                  >
+                    Sync Now
+                  </Button>
+                </div>
+              )}
+
+              {syncSourceType === "none" && (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <CloudOff className="w-5 h-5" />
+                    <span>This skill is managed locally and not synchronized with any external source.</span>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </ModalBody>
         <ModalFooter>
@@ -387,6 +530,18 @@ function SkillCard({
                 <Badge variant="gray" size="sm">
                   v{skill.versions.length}
                 </Badge>
+                {skill.syncSource?.type === "github" && (
+                  <Badge variant="default" size="sm" className="flex items-center gap-1">
+                    <Github className="w-3 h-3" />
+                    GitHub
+                  </Badge>
+                )}
+                {skill.syncSource?.type === "prompthub" && (
+                  <Badge variant="primary" size="sm" className="flex items-center gap-1">
+                    <Cloud className="w-3 h-3" />
+                    PromptHub
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                 {skill.description || "No description"}
