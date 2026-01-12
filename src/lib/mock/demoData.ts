@@ -1723,6 +1723,8 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-dashboard",
     targetName: "Wix Chat - Dashboard Expert",
+    testSuiteId: "suite-wix-dashboard",
+    testSuiteName: "Wix CLI Dashboard Pages",
     status: "completed",
     maxIterations: 3,
     iterations: [
@@ -1800,6 +1802,8 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
     targetType: "skill",
     targetId: "skill-wix-dashboard-basic",
     targetName: "Wix Dashboard Page - Basic",
+    testSuiteId: "suite-wix-dashboard",
+    testSuiteName: "Wix CLI Dashboard Pages",
     status: "completed",
     maxIterations: 3,
     iterations: [
@@ -1871,6 +1875,8 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-backend",
     targetName: "Wix Chat - Backend Expert",
+    testSuiteId: "suite-api-patterns",
+    testSuiteName: "API Design Patterns",
     status: "running",
     maxIterations: 3,
     iterations: [

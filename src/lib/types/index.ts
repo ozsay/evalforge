@@ -1039,6 +1039,10 @@ export interface ImprovementRun {
   targetId: string;
   /** Display name of the target */
   targetName: string;
+  /** ID of the test suite to run against */
+  testSuiteId: string;
+  /** Display name of the test suite */
+  testSuiteName: string;
   /** Current status of the run */
   status: ImprovementRunStatus;
   /** Maximum number of iterations to run */
@@ -1061,5 +1065,7 @@ export type CreateImprovementRunInput = {
   targetType: ImprovementTargetType;
   targetId: string;
   targetName: string;
+  testSuiteId: string;
+  testSuiteName: string;
   maxIterations: number;
 };

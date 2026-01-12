@@ -33,6 +33,7 @@ import {
   useSkills,
   usePromptAgents,
   useAgents,
+  useTestSuites,
 } from "@lib/store";
 import type { ImprovementRun, ImprovementIteration, ImprovementTargetType } from "@lib/types";
 import { formatRelativeTime, cn } from "@lib/utils";
@@ -70,10 +71,12 @@ function StartView() {
   const skills = useSkills();
   const promptAgents = usePromptAgents();
   const agents = useAgents();
+  const testSuites = useTestSuites();
   const { startImprovementRun } = useStore();
 
   const [targetType, setTargetType] = useState<ImprovementTargetType>("skill");
   const [targetId, setTargetId] = useState("");
+  const [testSuiteId, setTestSuiteId] = useState("");
   const [maxIterations, setMaxIterations] = useState(3);
 
   const targetOptions = useMemo(() => {
@@ -102,13 +105,19 @@ function StartView() {
     }
   }, [targetType, targetId, skills, promptAgents, agents]);
 
+  const selectedTestSuite = useMemo(() => {
+    return testSuites.find((s) => s.id === testSuiteId);
+  }, [testSuiteId, testSuites]);
+
   const handleStartRun = () => {
-    if (!targetId || !selectedTarget) return;
+    if (!targetId || !selectedTarget || !testSuiteId || !selectedTestSuite) return;
 
     const run = startImprovementRun({
       targetType,
       targetId,
       targetName: selectedTarget.name,
+      testSuiteId,
+      testSuiteName: selectedTestSuite.name,
       maxIterations,
     });
 
@@ -167,6 +176,16 @@ function StartView() {
                 ]}
               />
 
+              <Select
+                label="Test Suite"
+                value={testSuiteId}
+                onChange={(e) => setTestSuiteId(e.target.value)}
+                options={[
+                  { value: "", label: "Choose a test suite..." },
+                  ...testSuites.map((s) => ({ value: s.id, label: `${s.name} (${s.scenarioIds.length} scenarios)` })),
+                ]}
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Max Iterations
@@ -191,7 +210,7 @@ function StartView() {
 
               <Button
                 onClick={handleStartRun}
-                disabled={!targetId}
+                disabled={!targetId || !testSuiteId}
                 className="w-full"
                 leftIcon={<Play className="w-4 h-4" />}
               >
@@ -296,6 +315,9 @@ function RunCard({ run, onClick }: { run: ImprovementRun; onClick: () => void })
             {getStatusBadge()}
           </div>
           <div className="flex items-center gap-4 text-sm text-gray-500">
+            <span className="text-gray-600">
+              Suite: <span className="font-medium">{run.testSuiteName}</span>
+            </span>
             <span>
               {run.iterations.length}/{run.maxIterations} iterations
             </span>
@@ -376,6 +398,9 @@ function RunDetailView({ runId }: { runId: string }) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{run.targetName}</h1>
+            <p className="text-gray-600 mb-2">
+              Testing against: <span className="font-medium">{run.testSuiteName}</span>
+            </p>
             <div className="flex items-center gap-3">
               <Badge
                 variant={
