@@ -10,6 +10,7 @@ import {
   Bot,
   MessageSquare,
   Play,
+  Sparkles,
   BarChart3,
   Tags,
   Settings,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { to: "/scenarios", label: "Test Scenarios", icon: TestTube2 },
   { to: "/suites", label: "Test Suites", icon: FolderKanban },
   { to: "/evaluation", label: "Evaluation", icon: Play },
+  { to: "/self-improving", label: "Self-Improving", icon: Sparkles },
   { to: "/results", label: "Results", icon: BarChart3 },
   { to: "/labeling", label: "Labeling", icon: Tags },
 ];

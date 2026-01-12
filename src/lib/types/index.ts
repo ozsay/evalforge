@@ -910,3 +910,103 @@ export type CodingToolType = AgentType;
 export type CreateCodingToolInput = CreateAgentInput;
 export type UpdateCodingToolInput = UpdateAgentInput;
 export const BUILTIN_TOOLS = BUILTIN_AGENTS;
+
+// ==========================================
+// Self-Improving Evaluation Types
+// ==========================================
+
+/**
+ * Represents a single change made during an improvement iteration.
+ */
+export interface ImprovementChange {
+  /** The field that was changed (e.g., "systemPrompt", "skillMd", "temperature") */
+  field: string;
+  /** The value before the change */
+  before: string;
+  /** The value after the change */
+  after: string;
+  /** Why this change was made */
+  reason: string;
+}
+
+/**
+ * A snapshot of a target's state at a specific iteration.
+ */
+export interface TargetSnapshot {
+  /** For skills: the SKILL.md content */
+  skillMd?: string;
+  /** For prompt agents: the system prompt */
+  systemPrompt?: string;
+  /** Model configuration snapshot */
+  modelConfig?: ModelConfig;
+  /** For prompt agents: MCP server configs */
+  mcpServers?: MCPServerConfig[];
+}
+
+/**
+ * Represents a single iteration in the improvement process.
+ */
+export interface ImprovementIteration {
+  id: string;
+  iterationNumber: number;
+  /** Pass rate achieved in this iteration (0-100) */
+  passRate: number;
+  /** Number of assertions passed */
+  passed: number;
+  /** Number of assertions failed */
+  failed: number;
+  /** Changes applied after this evaluation (empty for final iteration) */
+  changes: ImprovementChange[];
+  /** LLM feedback that led to the changes */
+  feedback: string;
+  /** Snapshot of the target at this iteration */
+  targetSnapshot: TargetSnapshot;
+  /** When this iteration was evaluated */
+  evaluatedAt: string;
+}
+
+/**
+ * Status of an improvement run.
+ */
+export type ImprovementRunStatus = "pending" | "running" | "completed" | "failed";
+
+/**
+ * Type of target being improved.
+ */
+export type ImprovementTargetType = "skill" | "prompt_agent" | "coding_agent";
+
+/**
+ * Represents a complete self-improving evaluation run.
+ */
+export interface ImprovementRun {
+  id: string;
+  /** Type of target being improved */
+  targetType: ImprovementTargetType;
+  /** ID of the target being improved */
+  targetId: string;
+  /** Display name of the target */
+  targetName: string;
+  /** Current status of the run */
+  status: ImprovementRunStatus;
+  /** Maximum number of iterations to run */
+  maxIterations: number;
+  /** All iterations completed so far */
+  iterations: ImprovementIteration[];
+  /** Pass rate from the first iteration */
+  initialPassRate: number;
+  /** Pass rate from the last iteration */
+  finalPassRate: number;
+  /** Improvement in percentage points (finalPassRate - initialPassRate) */
+  improvement: number;
+  /** When the run was started */
+  startedAt: string;
+  /** When the run completed (if completed) */
+  completedAt?: string;
+}
+
+export type CreateImprovementRunInput = {
+  targetType: ImprovementTargetType;
+  targetId: string;
+  targetName: string;
+  maxIterations: number;
+};

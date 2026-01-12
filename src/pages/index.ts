@@ -6,6 +6,7 @@ export { TargetGroupsPage } from "./TargetGroupsPage";
 export { AgentsPage } from "./AgentsPage";
 export { PromptAgentsPage } from "./PromptAgentsPage";
 export { EvaluationPage } from "./EvaluationPage";
+export { SelfImprovingPage } from "./SelfImprovingPage";
 export { ResultsPage } from "./ResultsPage";
 export { LabelingPage } from "./LabelingPage";
 export { SettingsPage } from "./SettingsPage";

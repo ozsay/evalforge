@@ -40,6 +40,11 @@ import {
   PromptAgent,
   CreatePromptAgentInput,
   UpdatePromptAgentInput,
+  // Self-Improving Evaluation types
+  ImprovementRun,
+  ImprovementIteration,
+  CreateImprovementRunInput,
+  ImprovementRunStatus,
 } from "@lib/types";
 import { parseSkillMd } from "@lib/utils/skillParser";
 import { generateDemoData } from "@lib/mock/demoData";
@@ -64,6 +69,7 @@ interface AppState {
   promptAgents: PromptAgent[];
   agents: Agent[];
   evalRuns: EvalRun[];
+  improvementRuns: ImprovementRun[];
   settings: Settings;
 
   // Skill Actions
@@ -131,6 +137,14 @@ interface AppState {
   // Label Actions
   addLabel: (resultId: string, label: Omit<Label, "id" | "resultId" | "labeledAt">) => void;
 
+  // Improvement Run Actions
+  startImprovementRun: (input: CreateImprovementRunInput) => ImprovementRun;
+  updateImprovementRunStatus: (id: string, status: ImprovementRunStatus) => void;
+  addImprovementIteration: (runId: string, iteration: Omit<ImprovementIteration, "id">) => void;
+  completeImprovementRun: (id: string) => void;
+  deleteImprovementRun: (id: string) => void;
+  getImprovementRunById: (id: string) => ImprovementRun | undefined;
+
   // Settings Actions
   updateSettings: (settings: Partial<Settings>) => void;
 
@@ -190,6 +204,7 @@ export const useStore = create<AppState>()(
       promptAgents: demoData.promptAgents || [],
       agents: [...BUILTIN_AGENTS, ...demoData.agents.filter(a => !a.isBuiltIn)],
       evalRuns: demoData.evalRuns,
+      improvementRuns: demoData.improvementRuns || [],
       settings: { ...defaultSettings },
 
       // ==========================================
@@ -909,6 +924,80 @@ export const useStore = create<AppState>()(
       },
 
       // ==========================================
+      // Improvement Run Actions
+      // ==========================================
+
+      startImprovementRun: (input) => {
+        const now = new Date().toISOString();
+        const run: ImprovementRun = {
+          id: generateId(),
+          ...input,
+          status: "running",
+          iterations: [],
+          initialPassRate: 0,
+          finalPassRate: 0,
+          improvement: 0,
+          startedAt: now,
+        };
+
+        set((state) => ({
+          improvementRuns: [run, ...state.improvementRuns],
+        }));
+        return run;
+      },
+
+      updateImprovementRunStatus: (id, status) => {
+        set((state) => ({
+          improvementRuns: state.improvementRuns.map((run) =>
+            run.id === id ? { ...run, status } : run
+          ),
+        }));
+      },
+
+      addImprovementIteration: (runId, iteration) => {
+        const newIteration: ImprovementIteration = {
+          ...iteration,
+          id: generateId(),
+        };
+
+        set((state) => ({
+          improvementRuns: state.improvementRuns.map((run) => {
+            if (run.id !== runId) return run;
+
+            const iterations = [...run.iterations, newIteration];
+            const initialPassRate = iterations[0]?.passRate || 0;
+            const finalPassRate = newIteration.passRate;
+
+            return {
+              ...run,
+              iterations,
+              initialPassRate,
+              finalPassRate,
+              improvement: finalPassRate - initialPassRate,
+            };
+          }),
+        }));
+      },
+
+      completeImprovementRun: (id) => {
+        set((state) => ({
+          improvementRuns: state.improvementRuns.map((run) =>
+            run.id === id
+              ? { ...run, status: "completed" as const, completedAt: new Date().toISOString() }
+              : run
+          ),
+        }));
+      },
+
+      deleteImprovementRun: (id) => {
+        set((state) => ({
+          improvementRuns: state.improvementRuns.filter((r) => r.id !== id),
+        }));
+      },
+
+      getImprovementRunById: (id) => get().improvementRuns.find((r) => r.id === id),
+
+      // ==========================================
       // Settings Actions
       // ==========================================
 
@@ -932,6 +1021,7 @@ export const useStore = create<AppState>()(
           promptAgents: demoData.promptAgents || [],
           agents: demoData.agents,
           evalRuns: demoData.evalRuns,
+          improvementRuns: demoData.improvementRuns || [],
         });
       },
 
@@ -944,6 +1034,7 @@ export const useStore = create<AppState>()(
           promptAgents: [],
           agents: [],
           evalRuns: [],
+          improvementRuns: [],
         });
       },
 
@@ -1028,7 +1119,16 @@ export const usePromptAgents = () => useStore((state) => state.promptAgents);
 export const useAgents = () => useStore((state) => state.agents);
 export const useCodingTools = () => useStore((state) => state.agents); // Alias for useAgents
 export const useEvalRuns = () => useStore((state) => state.evalRuns);
+export const useImprovementRuns = () => useStore((state) => state.improvementRuns);
 export const useSettings = () => useStore((state) => state.settings);
+
+export const useImprovementRunById = (runId: string) => {
+  const improvementRuns = useStore((state) => state.improvementRuns);
+  return useMemo(
+    () => improvementRuns.find((r) => r.id === runId),
+    [improvementRuns, runId]
+  );
+};
 
 export const useStandaloneScenarios = () => {
   const testScenarios = useStore((state) => state.testScenarios);

@@ -9,6 +9,7 @@ import { TargetGroupsPage } from "@pages/TargetGroupsPage";
 import { AgentsPage } from "@pages/AgentsPage";
 import { PromptAgentsPage } from "@pages/PromptAgentsPage";
 import { EvaluationPage } from "@pages/EvaluationPage";
+import { SelfImprovingPage } from "@pages/SelfImprovingPage";
 import { ResultsPage } from "@pages/ResultsPage";
 import { LabelingPage } from "@pages/LabelingPage";
 import { SettingsPage } from "@pages/SettingsPage";
@@ -27,6 +28,8 @@ function App() {
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/prompt-agents" element={<PromptAgentsPage />} />
           <Route path="/evaluation" element={<EvaluationPage />} />
+          <Route path="/self-improving" element={<SelfImprovingPage />} />
+          <Route path="/self-improving/:runId" element={<SelfImprovingPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/labeling" element={<LabelingPage />} />
           <Route path="/settings" element={<SettingsPage />} />

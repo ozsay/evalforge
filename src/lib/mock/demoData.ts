@@ -18,6 +18,7 @@ import type {
   ModelConfig,
   FailureAnalysis,
   CodingTool,
+  ImprovementRun,
 } from "@lib/types";
 import { BUILTIN_AGENTS, BUILTIN_TOOLS } from "@lib/types";
 
@@ -1793,6 +1794,189 @@ When generating code:
 ];
 
 // ==========================================
+// Demo Improvement Runs
+// ==========================================
+
+const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
+  {
+    id: "improve-run-1",
+    targetType: "prompt_agent",
+    targetId: "pa-wix-chat-dashboard",
+    targetName: "Wix Chat - Dashboard Expert",
+    status: "completed",
+    maxIterations: 3,
+    iterations: [
+      {
+        id: "iter-1-1",
+        iterationNumber: 1,
+        passRate: 62,
+        passed: 5,
+        failed: 3,
+        changes: [],
+        feedback: "Initial evaluation shows issues with loading state handling and accessibility. The system prompt lacks specific guidance on error boundaries and ARIA attributes.",
+        targetSnapshot: {
+          systemPrompt: "You are a Wix Dashboard development expert...",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.2, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "iter-1-2",
+        iterationNumber: 2,
+        passRate: 78,
+        passed: 7,
+        failed: 2,
+        changes: [
+          {
+            field: "systemPrompt",
+            before: "...Follow Wix CLI best practices",
+            after: "...Follow Wix CLI best practices\n\nAccessibility Requirements:\n- Always include ARIA labels on interactive elements\n- Implement focus management in modals\n- Use semantic HTML elements",
+            reason: "Added explicit accessibility guidelines to improve a11y test pass rate",
+          },
+          {
+            field: "temperature",
+            before: "0.4",
+            after: "0.2",
+            reason: "Reduced temperature for more consistent output format",
+          },
+        ],
+        feedback: "Improved accessibility handling. Still failing on complex state management scenarios. Adding more specific guidance on React Query patterns.",
+        targetSnapshot: {
+          systemPrompt: "You are a Wix Dashboard development expert... (updated with a11y)",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.2, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "iter-1-3",
+        iterationNumber: 3,
+        passRate: 91,
+        passed: 8,
+        failed: 1,
+        changes: [
+          {
+            field: "systemPrompt",
+            before: "...Use React Query or SWR for data fetching",
+            after: "...Use React Query or SWR for data fetching\n\nState Management Patterns:\n- Use useQuery with proper staleTime and cacheTime\n- Implement optimistic updates with useMutation\n- Handle loading/error/success states explicitly",
+            reason: "Added detailed React Query guidance to fix state management failures",
+          },
+        ],
+        feedback: "Significant improvement achieved. The remaining failure is an edge case with very large datasets. Consider this acceptable for now.",
+        targetSnapshot: {
+          systemPrompt: "You are a Wix Dashboard development expert... (final version)",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.2, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    initialPassRate: 62,
+    finalPassRate: 91,
+    improvement: 29,
+    startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "improve-run-2",
+    targetType: "skill",
+    targetId: "skill-wix-dashboard-basic",
+    targetName: "Wix Dashboard Page - Basic",
+    status: "completed",
+    maxIterations: 3,
+    iterations: [
+      {
+        id: "iter-2-1",
+        iterationNumber: 1,
+        passRate: 55,
+        passed: 4,
+        failed: 4,
+        changes: [],
+        feedback: "Initial evaluation shows the skill generates inconsistent file structures. Missing proper index.ts exports and CSS module patterns.",
+        targetSnapshot: {
+          skillMd: "# Wix Dashboard Page - Basic\n\nCreate basic dashboard pages...",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "iter-2-2",
+        iterationNumber: 2,
+        passRate: 72,
+        passed: 6,
+        failed: 2,
+        changes: [
+          {
+            field: "skillMd",
+            before: "## Output Structure\n\n```\nsrc/dashboard/pages/{PageName}/\n├── page.tsx\n├── page.module.css\n└── index.ts\n```",
+            after: "## Output Structure\n\n```\nsrc/dashboard/pages/{PageName}/\n├── page.tsx        // Main page component\n├── page.module.css // Scoped styles using CSS modules\n└── index.ts        // Re-exports: export { default } from './page'\n```\n\n**IMPORTANT**: Always create the index.ts file with proper exports.",
+            reason: "Added explicit file structure requirements with detailed comments",
+          },
+        ],
+        feedback: "File structure is now consistent. Still seeing issues with Design System component usage. Some generated code uses custom components instead of @wix/design-system.",
+        targetSnapshot: {
+          skillMd: "# Wix Dashboard Page - Basic (v2)\n\nCreate basic dashboard pages...",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "iter-2-3",
+        iterationNumber: 3,
+        passRate: 88,
+        passed: 7,
+        failed: 1,
+        changes: [
+          {
+            field: "skillMd",
+            before: "## Capabilities\n\n- Create dashboard pages with standard layouts",
+            after: "## Capabilities\n\n- Create dashboard pages with standard layouts\n\n## Required Components\n\nYou MUST use these @wix/design-system components:\n- `Page`, `Page.Header`, `Page.Content` for layout\n- `Card` for content sections\n- `Table` for data display\n- `Button`, `IconButton` for actions\n- `Loader` for loading states\n\nDo NOT create custom components for these patterns.",
+            reason: "Added explicit component requirements to enforce Design System usage",
+          },
+        ],
+        feedback: "Excellent improvement. The skill now consistently uses Design System components and proper file structure.",
+        targetSnapshot: {
+          skillMd: "# Wix Dashboard Page - Basic (final)\n\nCreate basic dashboard pages...",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    initialPassRate: 55,
+    finalPassRate: 88,
+    improvement: 33,
+    startedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "improve-run-3",
+    targetType: "prompt_agent",
+    targetId: "pa-wix-chat-backend",
+    targetName: "Wix Chat - Backend Expert",
+    status: "running",
+    maxIterations: 3,
+    iterations: [
+      {
+        id: "iter-3-1",
+        iterationNumber: 1,
+        passRate: 68,
+        passed: 6,
+        failed: 3,
+        changes: [],
+        feedback: "Initial evaluation reveals issues with error handling patterns and input validation. The agent sometimes forgets to validate required parameters.",
+        targetSnapshot: {
+          systemPrompt: "You are a Wix Backend development expert...",
+          modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.2, maxTokens: 8192 },
+        },
+        evaluatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    initialPassRate: 68,
+    finalPassRate: 68,
+    improvement: 0,
+    startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ==========================================
 // Export Demo Data Generator
 // ==========================================
 
@@ -1805,6 +1989,7 @@ export function generateDemoData(): {
   evalRuns: EvalRun[];
   agents: Agent[];
   codingTools: CodingTool[];
+  improvementRuns: ImprovementRun[];
 } {
   return {
     skills: DEMO_SKILLS,
@@ -1815,5 +2000,6 @@ export function generateDemoData(): {
     evalRuns: generateEvalRuns(),
     agents: DEMO_AGENTS,
     codingTools: [...BUILTIN_TOOLS],
+    improvementRuns: DEMO_IMPROVEMENT_RUNS,
   };
 }
