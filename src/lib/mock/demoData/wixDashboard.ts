@@ -8,11 +8,12 @@ import type {
   TestScenario,
   TestSuite,
   TargetGroup,
-  PromptAgent,
   ImprovementRun,
   Agent,
+  EvalRun,
 } from "@lib/types";
 import { createSkill, WIX_APP_BUILDER_PROJECT_ID } from "./shared";
+import { generateEvalRuns } from "./generators";
 
 // ==========================================
 // Wix App Builder Agent (project-specific)
@@ -55,30 +56,33 @@ export const WIX_APP_BUILDER_AGENT: Agent = {
 
 export const WIX_SKILLS: Skill[] = [
   createSkill(
-    "skill-wix-dashboard-basic",
+    "skill-wix-dashboard-page",
     WIX_APP_BUILDER_PROJECT_ID,
-    "Wix Dashboard Page - Basic",
-    "Creates basic Wix CLI dashboard pages with standard layouts and widgets",
+    "Dashboard Page",
+    "Creates Wix CLI dashboard pages with layouts, widgets, and data management",
     `---
-name: wix-dashboard-page-basic
+name: dashboard-page
 version: 1.0.0
 author: Wix Team
 tags:
   - wix
   - dashboard
   - cli
-allowed-tools: Read, Write, Bash
+  - page
+allowed-tools: Read, Write, Bash, WixSDK
 ---
 
-# Wix Dashboard Page - Basic
+# Dashboard Page
 
-Create basic dashboard pages for Wix applications using the Wix CLI.
+Create comprehensive dashboard pages for Wix applications using the Wix CLI.
 
 ## Capabilities
 
-- Create dashboard pages with standard layouts
-- Add basic widgets (stats, tables, cards)
-- Implement simple navigation patterns
+- Create dashboard pages with standard and advanced layouts
+- Add widgets (stats, tables, cards, charts)
+- Real-time data fetching with Wix SDK
+- State management and form handling
+- Dark/light theme support
 - Use Wix Design System components
 
 ## Output Structure
@@ -87,216 +91,322 @@ Create basic dashboard pages for Wix applications using the Wix CLI.
 src/dashboard/pages/{PageName}/
 ├── page.tsx
 ├── page.module.css
+├── components/
+│   └── (page-specific components)
 └── index.ts
 \`\`\`
 `,
     [
       {
-        id: "skill-wix-dash-basic-v1",
+        id: "skill-wix-dashboard-page-v1",
         version: 1,
-        skillMd: "# Wix Dashboard Basic v1",
-        metadata: { name: "Wix Dashboard Basic", description: "v1 - Standard layouts" },
+        skillMd: "# Dashboard Page v1",
+        metadata: { name: "Dashboard Page", description: "v1 - Standard layouts" },
         model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
         createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Initial basic dashboard skill",
+        notes: "Initial dashboard page skill",
       },
       {
-        id: "skill-wix-dash-basic-v2",
+        id: "skill-wix-dashboard-page-v2",
         version: 2,
-        skillMd: "# Wix Dashboard Basic v2 - Improved widgets",
-        metadata: { name: "Wix Dashboard Basic", description: "v2 - Better widget support" },
+        skillMd: "# Dashboard Page v2 - Enhanced widgets and data management",
+        metadata: { name: "Dashboard Page", description: "v2 - Better widget and data support" },
         model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Added more widget types",
+        notes: "Added more widget types and data fetching patterns",
       },
     ],
     {
       type: "prompthub",
-      promptHubId: "wix-dashboard-basic-v2",
+      promptHubId: "wix-dashboard-page-v2",
       version: "2.1.0",
       lastSyncedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     }
   ),
   createSkill(
-    "skill-wix-dashboard-advanced",
+    "skill-wix-backend-api",
     WIX_APP_BUILDER_PROJECT_ID,
-    "Wix Dashboard Page - Advanced",
-    "Creates Wix CLI dashboard pages with with direct instructions how to handle data fetching, state management, and complex interactions",
+    "Backend API",
+    "Creates Wix backend API endpoints with HTTP functions and data management",
     `---
-name: wix-dashboard-page-advanced
-version: 2.0.0
-author: Wix Team
-tags:
-  - wix
-  - dashboard
-  - cli
-  - advanced
-allowed-tools: Read, Write, Bash, WixSDK
----
-
-# Wix Dashboard Page - Advanced
-
-Create advanced dashboard pages with real-time data, complex state management, and rich interactions.
-
-## Capabilities
-
-- Real-time data fetching with Wix SDK
-- Complex state management patterns
-- Advanced table features (sorting, filtering, pagination)
-- Modal workflows and multi-step forms
-- Dark/light theme support
-
-## Output Structure
-
-\`\`\`
-src/dashboard/pages/{PageName}/
-├── page.tsx
-├── page.module.css
-├── components/
-│   ├── DataTable.tsx
-│   └── StatsWidget.tsx
-├── hooks/
-│   └── usePageData.ts
-└── index.ts
-\`\`\`
-`,
-    [
-      {
-        id: "skill-wix-dash-adv-v1",
-        version: 1,
-        skillMd: "# Wix Dashboard Advanced v1",
-        metadata: { name: "Wix Dashboard Advanced", description: "v1 - Complex pages" },
-        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
-        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Initial advanced dashboard skill",
-      },
-    ],
-    {
-      type: "github",
-      repository: "wix-private/dashboard-skills",
-      branch: "main",
-      path: "advanced/SKILL.md",
-      lastSyncCommit: "f8e7d6c5b4a3",
-      lastSyncedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-    }
-  ),
-  createSkill(
-    "skill-wix-backend-http",
-    WIX_APP_BUILDER_PROJECT_ID,
-    "Wix Backend - HTTP Functions",
-    "Creates Wix HTTP Functions for backend API endpoints",
-    `---
-name: wix-backend-http-functions
+name: backend-api
 version: 1.0.0
 author: Wix Team
 tags:
   - wix
   - backend
-  - http
   - api
-allowed-tools: Read, Write, Bash
+  - http
+allowed-tools: Read, Write, Bash, WixData
 ---
 
-# Wix Backend - HTTP Functions
+# Backend API
 
-Create HTTP function endpoints for Wix applications.
+Create backend API endpoints for Wix applications.
 
 ## Capabilities
 
-- Create GET/POST/PUT/DELETE endpoints
+- Create GET/POST/PUT/DELETE HTTP endpoints
 - Input validation and error handling
 - Authentication and authorization
-- CORS configuration
-- Response formatting
+- Wix Data collections and queries
+- External API integrations
+- Scheduled jobs and triggers
 
 ## Output Structure
 
 \`\`\`
 backend/
 ├── http-functions.ts
-└── helpers/
-    ├── validation.ts
-    └── auth.ts
-\`\`\`
-`,
-    [
-      {
-        id: "skill-wix-http-v1",
-        version: 1,
-        skillMd: "# Wix HTTP Functions v1",
-        metadata: { name: "Wix HTTP", description: "v1 - Basic endpoints" },
-        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-        createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Initial HTTP functions skill",
-      },
-      {
-        id: "skill-wix-http-v2",
-        version: 2,
-        skillMd: "# Wix HTTP Functions v2 - With middleware",
-        metadata: { name: "Wix HTTP", description: "v2 - Added middleware support" },
-        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Added middleware and better error handling",
-      },
-    ],
-    {
-      type: "prompthub",
-      promptHubId: "wix-http-functions",
-      version: "2.0.0",
-      lastSyncedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-  ),
-  createSkill(
-    "skill-wix-backend-velo",
-    WIX_APP_BUILDER_PROJECT_ID,
-    "Wix Backend - Velo Backend",
-    "Creates Velo backend modules with data collections and scheduled jobs",
-    `---
-name: wix-backend-velo
-version: 2.0.0
-author: Wix Team
-tags:
-  - wix
-  - velo
-  - backend
-  - database
-allowed-tools: Read, Write, Bash, WixData
----
-
-# Wix Backend - Velo Backend
-
-Create comprehensive Velo backend solutions with data management and automation.
-
-## Capabilities
-
-- Wix Data collections and queries
-- Scheduled jobs and triggers
-- Backend event handlers
-- Data hooks and validations
-- External API integrations
-
-## Output Structure
-
-\`\`\`
-backend/
 ├── data.ts
-├── jobs/
-│   └── scheduled-tasks.ts
-├── events/
-│   └── data-hooks.ts
+├── helpers/
+│   ├── validation.ts
+│   └── auth.ts
 └── services/
     └── external-api.ts
 \`\`\`
 `,
     [
       {
-        id: "skill-wix-velo-v1",
+        id: "skill-wix-backend-api-v1",
         version: 1,
-        skillMd: "# Wix Velo Backend v1",
-        metadata: { name: "Wix Velo", description: "v1 - Data and jobs" },
+        skillMd: "# Backend API v1",
+        metadata: { name: "Backend API", description: "v1 - Basic endpoints" },
         model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-        createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: "Initial Velo backend skill",
+        createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial backend API skill",
+      },
+      {
+        id: "skill-wix-backend-api-v2",
+        version: 2,
+        skillMd: "# Backend API v2 - With middleware and data hooks",
+        metadata: { name: "Backend API", description: "v2 - Middleware and data hooks" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Added middleware, data hooks, and better error handling",
+      },
+    ],
+    {
+      type: "github",
+      repository: "wix-private/backend-skills",
+      branch: "main",
+      path: "api/SKILL.md",
+      lastSyncCommit: "a1b2c3d4e5f6",
+      lastSyncedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  ),
+  createSkill(
+    "skill-wix-embedded-script",
+    WIX_APP_BUILDER_PROJECT_ID,
+    "Embedded Script",
+    "Creates embedded scripts for Wix sites with custom functionality",
+    `---
+name: embedded-script
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - embedded
+  - script
+  - widget
+allowed-tools: Read, Write, Bash
+---
+
+# Embedded Script
+
+Create embedded scripts that add custom functionality to Wix sites.
+
+## Capabilities
+
+- Create embeddable JavaScript widgets
+- DOM manipulation and event handling
+- Cross-origin communication
+- Custom styling and animations
+- Integration with external services
+- Responsive design support
+
+## Output Structure
+
+\`\`\`
+src/embedded/
+├── widget.ts
+├── styles.css
+├── utils/
+│   └── dom-helpers.ts
+└── index.ts
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-embedded-script-v1",
+        version: 1,
+        skillMd: "# Embedded Script v1",
+        metadata: { name: "Embedded Script", description: "v1 - Basic widgets" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial embedded script skill",
+      },
+    ],
+    {
+      type: "prompthub",
+      promptHubId: "wix-embedded-script",
+      version: "1.0.0",
+      lastSyncedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  ),
+  createSkill(
+    "skill-wix-blueprint-gemini",
+    WIX_APP_BUILDER_PROJECT_ID,
+    "Generate Blueprint - Gemini",
+    "Generates app blueprints using Google Gemini for architecture planning",
+    `---
+name: generate-blueprint-gemini
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - blueprint
+  - gemini
+  - architecture
+allowed-tools: Read, Write
+---
+
+# Generate Blueprint - Gemini
+
+Generate comprehensive app blueprints using Google Gemini for architecture and planning.
+
+## Capabilities
+
+- App architecture design
+- Component hierarchy planning
+- Data model generation
+- API endpoint mapping
+- File structure recommendations
+- Technology stack suggestions
+
+## Output Structure
+
+\`\`\`
+blueprints/
+├── architecture.md
+├── components.md
+├── data-models.md
+└── api-spec.md
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-blueprint-gemini-v1",
+        version: 1,
+        skillMd: "# Generate Blueprint - Gemini v1",
+        metadata: { name: "Generate Blueprint - Gemini", description: "v1 - Architecture planning" },
+        model: { provider: "google", model: "gemini-2.0-flash", temperature: 0.4, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial Gemini blueprint generation skill",
+      },
+    ]
+  ),
+  createSkill(
+    "skill-wix-blueprint-claude",
+    WIX_APP_BUILDER_PROJECT_ID,
+    "Generate Blueprint - Claude",
+    "Generates app blueprints using Anthropic Claude for architecture planning",
+    `---
+name: generate-blueprint-claude
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - blueprint
+  - claude
+  - architecture
+allowed-tools: Read, Write
+---
+
+# Generate Blueprint - Claude
+
+Generate comprehensive app blueprints using Anthropic Claude for architecture and planning.
+
+## Capabilities
+
+- App architecture design
+- Component hierarchy planning
+- Data model generation
+- API endpoint mapping
+- File structure recommendations
+- Technology stack suggestions
+
+## Output Structure
+
+\`\`\`
+blueprints/
+├── architecture.md
+├── components.md
+├── data-models.md
+└── api-spec.md
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-blueprint-claude-v1",
+        version: 1,
+        skillMd: "# Generate Blueprint - Claude v1",
+        metadata: { name: "Generate Blueprint - Claude", description: "v1 - Architecture planning" },
+        model: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial Claude blueprint generation skill",
+      },
+    ]
+  ),
+  createSkill(
+    "skill-wix-blueprint-gpt",
+    WIX_APP_BUILDER_PROJECT_ID,
+    "Generate Blueprint - GPT",
+    "Generates app blueprints using OpenAI GPT for architecture planning",
+    `---
+name: generate-blueprint-gpt
+version: 1.0.0
+author: Wix Team
+tags:
+  - wix
+  - blueprint
+  - gpt
+  - architecture
+allowed-tools: Read, Write
+---
+
+# Generate Blueprint - GPT
+
+Generate comprehensive app blueprints using OpenAI GPT for architecture and planning.
+
+## Capabilities
+
+- App architecture design
+- Component hierarchy planning
+- Data model generation
+- API endpoint mapping
+- File structure recommendations
+- Technology stack suggestions
+
+## Output Structure
+
+\`\`\`
+blueprints/
+├── architecture.md
+├── components.md
+├── data-models.md
+└── api-spec.md
+\`\`\`
+`,
+    [
+      {
+        id: "skill-wix-blueprint-gpt-v1",
+        version: 1,
+        skillMd: "# Generate Blueprint - GPT v1",
+        metadata: { name: "Generate Blueprint - GPT", description: "v1 - Architecture planning" },
+        model: { provider: "openai", model: "gpt-4o", temperature: 0.4, maxTokens: 8192 },
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: "Initial GPT blueprint generation skill",
       },
     ]
   ),
@@ -307,60 +417,232 @@ backend/
 // ==========================================
 
 export const WIX_SCENARIOS: TestScenario[] = [
+  // Generate Blueprint scenarios
   {
-    id: "scenario-wix-dashboard-stats",
+    id: "scenario-blueprint-event-countdown",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    targetGroupId: "tg-wix-dashboard",
-    suiteIds: ["suite-wix-dashboard"],
-    name: "Wix Dashboard Stats Widget",
-    description: "Create a stats widget for Wix CLI dashboard with real-time data",
-    triggerPrompt: "Create a Wix CLI dashboard page with a stats widget showing site visits, conversions, and revenue.",
+    targetGroupId: "tg-wix-generate-blueprint",
+    suiteIds: ["suite-generate-blueprint"],
+    name: "Event Countdown",
+    description: "Generate a blueprint for an app that displays a site widget with a countdown timer to a specific event",
+    triggerPrompt: "Create a Wix app blueprint for an Event Countdown widget. The app should display a customizable countdown timer on the site that counts down to a user-specified date/time. Include settings for styling, timezone support, and what happens when the countdown reaches zero.",
     expectedFiles: [
-      { path: "src/dashboard/pages/stats/page.tsx" },
-      { path: "src/dashboard/pages/stats/stats.module.css" },
+      { path: "blueprints/architecture.md" },
+      { path: "blueprints/components.md" },
     ],
     assertions: [
-      { id: "a14", type: "file_presence", name: "Page exists", paths: ["src/dashboard/pages/stats/page.tsx"], shouldExist: true },
-      { id: "a15", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+      { id: "bp-1", type: "file_presence", name: "Architecture doc exists", paths: ["blueprints/architecture.md"], shouldExist: true },
+      { id: "bp-2", type: "file_presence", name: "Components doc exists", paths: ["blueprints/components.md"], shouldExist: true },
     ],
-    tags: ["wix", "dashboard", "stats"],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ["blueprint", "widget", "countdown", "timer"],
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: "scenario-wix-dashboard-settings",
+    id: "scenario-blueprint-shift-manager",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    suiteIds: ["suite-wix-dashboard"],
-    name: "Wix Dashboard Settings Page",
-    description: "Create a settings configuration page for Wix app",
-    triggerPrompt: "Create a Wix CLI dashboard settings page with form inputs for API keys and notification preferences.",
+    targetGroupId: "tg-wix-generate-blueprint",
+    suiteIds: ["suite-generate-blueprint"],
+    name: "Shift Manager",
+    description: "Generate a blueprint for an employee shift management app with a dashboard page",
+    triggerPrompt: "Create a Wix app blueprint for a Shift Manager application. The app should have a dashboard page where managers can create, edit, and assign shifts to employees. Include features for viewing weekly schedules, handling shift swaps, and notifications for upcoming shifts.",
     expectedFiles: [
-      { path: "src/dashboard/pages/settings/page.tsx" },
+      { path: "blueprints/architecture.md" },
+      { path: "blueprints/data-models.md" },
+      { path: "blueprints/api-spec.md" },
     ],
     assertions: [
-      { id: "a16", type: "file_presence", name: "Settings page exists", paths: ["src/dashboard/pages/settings/page.tsx"], shouldExist: true },
-      { id: "a17", type: "build_check", name: "TypeScript compiles", command: "npx tsc --noEmit", expectSuccess: true },
+      { id: "bp-3", type: "file_presence", name: "Architecture doc exists", paths: ["blueprints/architecture.md"], shouldExist: true },
+      { id: "bp-4", type: "file_presence", name: "Data models doc exists", paths: ["blueprints/data-models.md"], shouldExist: true },
+      { id: "bp-5", type: "file_presence", name: "API spec exists", paths: ["blueprints/api-spec.md"], shouldExist: true },
     ],
-    tags: ["wix", "dashboard", "settings"],
+    tags: ["blueprint", "dashboard", "shifts", "management"],
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-blueprint-order-notification",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-generate-blueprint",
+    suiteIds: ["suite-generate-blueprint"],
+    name: "Order Notification",
+    description: "Generate a blueprint for a backend app that listens to order events and sends Slack notifications",
+    triggerPrompt: "Create a Wix app blueprint for an Order Notification service. The app should use backend APIs to listen to Wix eCommerce order events (new order, order paid, order fulfilled) and send formatted notifications to a configured Slack channel. Include settings page for Slack webhook configuration.",
+    expectedFiles: [
+      { path: "blueprints/architecture.md" },
+      { path: "blueprints/api-spec.md" },
+    ],
+    assertions: [
+      { id: "bp-6", type: "file_presence", name: "Architecture doc exists", paths: ["blueprints/architecture.md"], shouldExist: true },
+      { id: "bp-7", type: "file_presence", name: "API spec exists", paths: ["blueprints/api-spec.md"], shouldExist: true },
+    ],
+    tags: ["blueprint", "backend", "notifications", "slack", "orders"],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Dashboard Page - App Builder scenarios
+  {
+    id: "scenario-dashboard-analytics",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-dashboard-app-builder"],
+    name: "Analytics Dashboard",
+    description: "Create a dashboard page with analytics widgets showing key metrics",
+    triggerPrompt: "Create a Wix dashboard page for analytics. Include stat cards showing total visitors, conversion rate, and revenue. Add a line chart for traffic over time and a table showing top-performing pages.",
+    expectedFiles: [
+      { path: "src/dashboard/pages/analytics/page.tsx" },
+      { path: "src/dashboard/pages/analytics/page.module.css" },
+    ],
+    assertions: [
+      { id: "dash-1", type: "file_presence", name: "Page exists", paths: ["src/dashboard/pages/analytics/page.tsx"], shouldExist: true },
+      { id: "dash-2", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["dashboard", "analytics", "charts", "stats"],
     createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: "scenario-wix-dashboard-table",
+    id: "scenario-dashboard-settings",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    suiteIds: ["suite-wix-dashboard"],
-    name: "Wix Dashboard Data Table",
-    description: "Create a paginated data table for Wix dashboard",
-    triggerPrompt: "Create a Wix CLI dashboard page with a data table showing orders, with sorting and pagination.",
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-dashboard-app-builder"],
+    name: "App Settings Page",
+    description: "Create a settings page with configuration forms and toggle options",
+    triggerPrompt: "Create a Wix dashboard settings page. Include form sections for API configuration (API key input, endpoint URL), notification preferences (email toggles, frequency dropdown), and a danger zone with reset/delete actions.",
     expectedFiles: [
-      { path: "src/dashboard/pages/orders/page.tsx" },
+      { path: "src/dashboard/pages/settings/page.tsx" },
     ],
     assertions: [
-      { id: "a18", type: "file_presence", name: "Orders page exists", paths: ["src/dashboard/pages/orders/page.tsx"], shouldExist: true },
-      { id: "a19", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+      { id: "dash-3", type: "file_presence", name: "Settings page exists", paths: ["src/dashboard/pages/settings/page.tsx"], shouldExist: true },
+      { id: "dash-4", type: "build_check", name: "TypeScript compiles", command: "npx tsc --noEmit", expectSuccess: true },
     ],
-    tags: ["wix", "dashboard", "table", "pagination"],
+    tags: ["dashboard", "settings", "forms", "configuration"],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-dashboard-data-table",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-dashboard-app-builder"],
+    name: "Data Management Table",
+    description: "Create a dashboard page with a full-featured data table",
+    triggerPrompt: "Create a Wix dashboard page for managing products. Include a data table with columns for product name, SKU, price, and stock. Add sorting, filtering by category, pagination, and bulk action buttons (delete, export).",
+    expectedFiles: [
+      { path: "src/dashboard/pages/products/page.tsx" },
+    ],
+    assertions: [
+      { id: "dash-5", type: "file_presence", name: "Products page exists", paths: ["src/dashboard/pages/products/page.tsx"], shouldExist: true },
+      { id: "dash-6", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["dashboard", "table", "data", "pagination", "filtering"],
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-dashboard-form-wizard",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-dashboard-app-builder"],
+    name: "Multi-step Form Wizard",
+    description: "Create a dashboard page with a multi-step form wizard",
+    triggerPrompt: "Create a Wix dashboard page with a multi-step form wizard for creating a new campaign. Step 1: Campaign details (name, description). Step 2: Audience targeting (age range, location). Step 3: Budget and schedule. Step 4: Review and submit.",
+    expectedFiles: [
+      { path: "src/dashboard/pages/campaigns/new/page.tsx" },
+    ],
+    assertions: [
+      { id: "dash-7", type: "file_presence", name: "Campaign wizard exists", paths: ["src/dashboard/pages/campaigns/new/page.tsx"], shouldExist: true },
+      { id: "dash-8", type: "build_check", name: "TypeScript compiles", command: "npx tsc --noEmit", expectSuccess: true },
+    ],
+    tags: ["dashboard", "form", "wizard", "multi-step"],
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Site Widgets - App Builder scenarios
+  {
+    id: "scenario-widget-contact-form",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-widgets-app-builder"],
+    name: "Contact Form Widget",
+    description: "Create a customizable contact form widget for site pages",
+    triggerPrompt: "Create a Wix site widget for a contact form. Include fields for name, email, phone (optional), and message. Add form validation, success/error states, and styling options configurable from the widget settings panel.",
+    expectedFiles: [
+      { path: "src/site/widgets/contact-form/widget.tsx" },
+      { path: "src/site/widgets/contact-form/settings.tsx" },
+    ],
+    assertions: [
+      { id: "wgt-1", type: "file_presence", name: "Widget exists", paths: ["src/site/widgets/contact-form/widget.tsx"], shouldExist: true },
+      { id: "wgt-2", type: "file_presence", name: "Settings panel exists", paths: ["src/site/widgets/contact-form/settings.tsx"], shouldExist: true },
+      { id: "wgt-3", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["widget", "form", "contact", "site"],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-widget-testimonials",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-widgets-app-builder"],
+    name: "Testimonials Carousel",
+    description: "Create a testimonials carousel widget with multiple display modes",
+    triggerPrompt: "Create a Wix site widget for displaying customer testimonials. Support carousel and grid layouts, include customer photo, name, company, and quote. Add autoplay option, navigation arrows, and dot indicators. Allow customization of colors and fonts.",
+    expectedFiles: [
+      { path: "src/site/widgets/testimonials/widget.tsx" },
+      { path: "src/site/widgets/testimonials/settings.tsx" },
+    ],
+    assertions: [
+      { id: "wgt-4", type: "file_presence", name: "Widget exists", paths: ["src/site/widgets/testimonials/widget.tsx"], shouldExist: true },
+      { id: "wgt-5", type: "file_presence", name: "Settings panel exists", paths: ["src/site/widgets/testimonials/settings.tsx"], shouldExist: true },
+      { id: "wgt-6", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["widget", "testimonials", "carousel", "site"],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-widget-pricing-table",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-widgets-app-builder"],
+    name: "Pricing Table Widget",
+    description: "Create a pricing comparison table widget with multiple tiers",
+    triggerPrompt: "Create a Wix site widget for a pricing table. Display 3 pricing tiers (Basic, Pro, Enterprise) with feature lists, pricing, and CTA buttons. Support highlighting a recommended tier, toggle for monthly/yearly pricing, and customizable colors.",
+    expectedFiles: [
+      { path: "src/site/widgets/pricing-table/widget.tsx" },
+      { path: "src/site/widgets/pricing-table/settings.tsx" },
+    ],
+    assertions: [
+      { id: "wgt-7", type: "file_presence", name: "Widget exists", paths: ["src/site/widgets/pricing-table/widget.tsx"], shouldExist: true },
+      { id: "wgt-8", type: "file_presence", name: "Settings panel exists", paths: ["src/site/widgets/pricing-table/settings.tsx"], shouldExist: true },
+      { id: "wgt-9", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["widget", "pricing", "table", "site"],
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "scenario-widget-social-feed",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    targetGroupId: "tg-wix-app-builder",
+    suiteIds: ["suite-widgets-app-builder"],
+    name: "Social Media Feed",
+    description: "Create a social media feed widget that displays posts from various platforms",
+    triggerPrompt: "Create a Wix site widget for displaying a social media feed. Support Instagram and Twitter/X feeds. Display posts in a masonry grid layout with images, captions, and engagement stats. Include settings for selecting platform, number of posts, and refresh interval.",
+    expectedFiles: [
+      { path: "src/site/widgets/social-feed/widget.tsx" },
+      { path: "src/site/widgets/social-feed/settings.tsx" },
+    ],
+    assertions: [
+      { id: "wgt-10", type: "file_presence", name: "Widget exists", paths: ["src/site/widgets/social-feed/widget.tsx"], shouldExist: true },
+      { id: "wgt-11", type: "file_presence", name: "Settings panel exists", paths: ["src/site/widgets/social-feed/settings.tsx"], shouldExist: true },
+      { id: "wgt-12", type: "build_check", name: "Build succeeds", command: "npm run build", expectSuccess: true },
+    ],
+    tags: ["widget", "social", "feed", "instagram", "twitter"],
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
@@ -371,13 +653,33 @@ export const WIX_SCENARIOS: TestScenario[] = [
 
 export const WIX_SUITES: TestSuite[] = [
   {
-    id: "suite-wix-dashboard",
+    id: "suite-generate-blueprint",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix CLI Dashboard Pages",
-    description: "Test suite for creating Wix CLI dashboard pages with various widgets and layouts",
-    scenarioIds: ["scenario-wix-dashboard-stats", "scenario-wix-dashboard-settings", "scenario-wix-dashboard-table"],
-    tags: ["wix", "dashboard", "cli"],
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    name: "Generate Blueprint",
+    description: "Test suite for evaluating blueprint generation across different LLM providers (Gemini, Claude, GPT)",
+    scenarioIds: ["scenario-blueprint-event-countdown", "scenario-blueprint-shift-manager", "scenario-blueprint-order-notification"],
+    tags: ["blueprint", "architecture", "planning"],
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "suite-dashboard-app-builder",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: "Dashboard Page - App Builder",
+    description: "Test suite for evaluating dashboard page generation using the Wix App Builder coding agent",
+    scenarioIds: ["scenario-dashboard-analytics", "scenario-dashboard-settings", "scenario-dashboard-data-table", "scenario-dashboard-form-wizard"],
+    tags: ["dashboard", "app-builder", "pages"],
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "suite-widgets-app-builder",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: "Site Widgets - App Builder",
+    description: "Test suite for evaluating site widget generation using the Wix App Builder coding agent",
+    scenarioIds: ["scenario-widget-contact-form", "scenario-widget-testimonials", "scenario-widget-pricing-table", "scenario-widget-social-feed"],
+    tags: ["widgets", "app-builder", "site"],
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
@@ -387,98 +689,6 @@ export const WIX_SUITES: TestSuite[] = [
 // ==========================================
 
 export const WIX_TARGET_GROUPS: TargetGroup[] = [
-  {
-    id: "tg-wix-dashboard",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Dashboard Components",
-    description: "Targets for Wix CLI dashboard page development",
-    targets: [
-      {
-        id: "target-wix-prompt",
-        type: "prompt_agent",
-        promptAgentConfig: {
-          name: "Wix Dashboard Expert",
-          description: "Specialized agent for Wix CLI dashboard development",
-          systemPrompt: `You are a Wix CLI dashboard development expert. You specialize in:
-1. Creating dashboard pages with Wix Design System
-2. Implementing stats widgets and data tables
-3. Building settings and configuration pages
-4. Using Wix SDK for data fetching
-
-Follow Wix CLI best practices:
-- Use @wix/design-system components
-- Implement proper loading states
-- Handle errors gracefully
-- Support dark/light themes`,
-          mcpServers: [
-            {
-              name: "wix-sdk",
-              command: "npx",
-              args: ["-y", "@wix/mcp-server"],
-            },
-            {
-              name: "filesystem",
-              command: "npx",
-              args: ["-y", "@modelcontextprotocol/server-filesystem", "./src"],
-            },
-          ],
-          modelConfig: {
-            provider: "anthropic",
-            model: "claude-3-5-sonnet-20241022",
-            temperature: 0.4,
-            maxTokens: 8192,
-          },
-        },
-      },
-      {
-        id: "target-cursor-wix",
-        type: "coding_agent",
-        agentId: "agent-cursor-cli",
-      },
-    ],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "tg-wix-dashboard-page",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Dashboard Page Development",
-    description: "All variants of Dashboard page coding skills for comprehensive evaluation",
-    targets: [
-      {
-        id: "target-dash-basic",
-        type: "agent_skill",
-        skillId: "skill-wix-dashboard-basic",
-      },
-      {
-        id: "target-dash-advanced",
-        type: "agent_skill",
-        skillId: "skill-wix-dashboard-advanced",
-      },
-    ],
-    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "tg-wix-backend",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Backend Development",
-    description: "All variants of Backend coding skills for HTTP Functions and Velo development",
-    targets: [
-      {
-        id: "target-backend-http",
-        type: "agent_skill",
-        skillId: "skill-wix-backend-http",
-      },
-      {
-        id: "target-backend-velo",
-        type: "agent_skill",
-        skillId: "skill-wix-backend-velo",
-      },
-    ],
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
   {
     id: "tg-wix-app-builder",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
@@ -494,184 +704,75 @@ Follow Wix CLI best practices:
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
   },
-];
-
-// ==========================================
-// Wix Dashboard Prompt Agents
-// ==========================================
-
-export const WIX_PROMPT_AGENTS: PromptAgent[] = [
   {
-    id: "pa-wix-chat-general",
+    id: "tg-wix-dashboard-page",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Chat - General",
-    description: "General-purpose Wix development assistant with access to Wix MCP for all development tasks.",
-    systemPrompt: `You are a Wix development expert assistant. You help developers with all aspects of Wix application development.
-
-Your expertise includes:
-1. Wix CLI and project setup
-2. Dashboard page development
-3. Backend development (HTTP Functions, Velo)
-4. Wix SDK and APIs
-5. Wix Design System components
-6. App deployment and publishing
-
-Guidelines:
-- Always use @wix/design-system for UI components
-- Follow Wix best practices for performance
-- Include proper error handling
-- Support both TypeScript and JavaScript
-- Provide complete, working code examples
-
-When helping users:
-- Ask clarifying questions when requirements are unclear
-- Suggest the most appropriate Wix APIs for the task
-- Explain trade-offs between different approaches
-- Include relevant documentation links`,
-    mcpServers: [
+    name: "Dashboard Page",
+    description: "Dashboard Page skill for creating Wix CLI dashboard pages",
+    targets: [
       {
-        name: "wix-mcp",
-        command: "npx",
-        args: ["-y", "@anthropic-ai/mcp-wix"],
-        envVars: { WIX_ENV: "development" },
-      },
-      {
-        name: "filesystem",
-        command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-filesystem", "./src"],
+        id: "target-dashboard-page",
+        type: "agent_skill",
+        skillId: "skill-wix-dashboard-page",
       },
     ],
-    modelConfig: {
-      provider: "anthropic",
-      model: "claude-3-5-sonnet-20241022",
-      temperature: 0.3,
-      maxTokens: 8192,
-    },
-    tags: ["wix", "chat", "general", "mcp"],
-    createdAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "pa-wix-chat-dashboard",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Chat - Dashboard Expert",
-    description: "Specialized Wix assistant focused on dashboard page development with deep Design System knowledge.",
-    systemPrompt: `You are a Wix Dashboard development expert. You specialize exclusively in creating beautiful, functional dashboard pages for Wix applications.
-
-Your deep expertise includes:
-1. Wix Dashboard page architecture
-2. @wix/design-system component library mastery
-3. Dashboard widgets (Stats, Tables, Cards, Charts)
-4. Settings pages and configuration UIs
-5. Modal workflows and form patterns
-6. Dark/light theme implementation
-
-Best Practices:
-- Always use proper loading states with <Loader />
-- Implement error boundaries and fallback UIs
-- Use <Page.Header />, <Page.Content /> for structure
-- Apply consistent spacing with design tokens
-- Support keyboard navigation
-- Test with screen readers
-
-Code Patterns:
-- Use React Query or SWR for data fetching
-- Implement optimistic updates
-- Cache appropriately
-- Handle offline states
-
-When generating code:
-- Include all necessary imports from @wix/design-system
-- Use TypeScript with proper type annotations
-- Add accessibility attributes (aria-*, role)
-- Include loading, error, and empty states`,
-    mcpServers: [
-      {
-        name: "wix-mcp",
-        command: "npx",
-        args: ["-y", "@anthropic-ai/mcp-wix"],
-        envVars: { WIX_ENV: "development" },
-      },
-      {
-        name: "wix-design-docs",
-        command: "npx",
-        args: ["-y", "@wix/design-system-mcp"],
-      },
-    ],
-    modelConfig: {
-      provider: "anthropic",
-      model: "claude-3-5-sonnet-20241022",
-      temperature: 0.2,
-      maxTokens: 8192,
-    },
-    tags: ["wix", "chat", "dashboard", "design-system", "mcp"],
-    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    id: "pa-wix-chat-backend",
+    id: "tg-wix-backend-api",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Chat - Backend Expert",
-    description: "Specialized Wix assistant focused on backend development including HTTP Functions, Velo, and data management.",
-    systemPrompt: `You are a Wix Backend development expert. You specialize exclusively in server-side development for Wix applications.
-
-Your deep expertise includes:
-1. Wix HTTP Functions
-2. Velo backend modules
-3. Wix Data collections and queries
-4. Scheduled jobs and triggers
-5. Authentication and permissions
-6. External API integrations
-7. Secrets management
-
-HTTP Functions Best Practices:
-- Use proper HTTP methods (GET, POST, PUT, DELETE)
-- Validate all input parameters
-- Return appropriate status codes
-- Handle errors gracefully
-- Use consistent response formats
-
-Wix Data Best Practices:
-- Create efficient queries with proper indexes
-- Use bulk operations for large datasets
-- Implement proper permissions
-- Handle concurrent updates
-- Use references for related data
-
-Security Guidelines:
-- Never expose sensitive data in responses
-- Validate and sanitize all inputs
-- Use wix-secrets-backend for API keys
-- Implement rate limiting when needed
-- Log security-relevant events
-
-When generating code:
-- Include comprehensive error handling
-- Add proper TypeScript types
-- Document API contracts
-- Include example requests/responses`,
-    mcpServers: [
+    name: "Backend API",
+    description: "Backend API skill for creating Wix backend endpoints and data management",
+    targets: [
       {
-        name: "wix-mcp",
-        command: "npx",
-        args: ["-y", "@anthropic-ai/mcp-wix"],
-        envVars: { WIX_ENV: "development" },
-      },
-      {
-        name: "wix-data-mcp",
-        command: "npx",
-        args: ["-y", "@wix/data-mcp"],
+        id: "target-backend-api",
+        type: "agent_skill",
+        skillId: "skill-wix-backend-api",
       },
     ],
-    modelConfig: {
-      provider: "anthropic",
-      model: "claude-3-5-sonnet-20241022",
-      temperature: 0.2,
-      maxTokens: 8192,
-    },
-    tags: ["wix", "chat", "backend", "http", "velo", "mcp"],
-    createdAt: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "tg-wix-embedded-script",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: "Embedded Script",
+    description: "Embedded Script skill for creating embeddable widgets and custom functionality",
+    targets: [
+      {
+        id: "target-embedded-script",
+        type: "agent_skill",
+        skillId: "skill-wix-embedded-script",
+      },
+    ],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "tg-wix-generate-blueprint",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: "Generate Blueprint",
+    description: "All blueprint generation skills using different LLM providers (Gemini, Claude, GPT)",
+    targets: [
+      {
+        id: "target-blueprint-gemini",
+        type: "agent_skill",
+        skillId: "skill-wix-blueprint-gemini",
+      },
+      {
+        id: "target-blueprint-claude",
+        type: "agent_skill",
+        skillId: "skill-wix-blueprint-claude",
+      },
+      {
+        id: "target-blueprint-gpt",
+        type: "agent_skill",
+        skillId: "skill-wix-blueprint-gpt",
+      },
+    ],
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -686,8 +787,8 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-dashboard",
     targetName: "Wix Chat - Dashboard Expert",
-    testSuiteId: "suite-wix-dashboard",
-    testSuiteName: "Wix CLI Dashboard Pages",
+    testSuiteId: "suite-dashboard-app-builder",
+    testSuiteName: "Dashboard Page - App Builder",
     status: "completed",
     maxIterations: 3,
     iterations: [
@@ -764,10 +865,10 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
     id: "improve-run-2",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
     targetType: "skill",
-    targetId: "skill-wix-dashboard-basic",
-    targetName: "Wix Dashboard Page - Basic",
-    testSuiteId: "suite-wix-dashboard",
-    testSuiteName: "Wix CLI Dashboard Pages",
+    targetId: "skill-wix-dashboard-page",
+    targetName: "Dashboard Page",
+    testSuiteId: "suite-dashboard-app-builder",
+    testSuiteName: "Dashboard Page - App Builder",
     status: "completed",
     maxIterations: 3,
     iterations: [
@@ -840,8 +941,8 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-backend",
     targetName: "Wix Chat - Backend Expert",
-    testSuiteId: "suite-api-patterns",
-    testSuiteName: "API Design Patterns",
+    testSuiteId: "suite-generate-blueprint",
+    testSuiteName: "Generate Blueprint",
     status: "running",
     maxIterations: 3,
     iterations: [
@@ -866,3 +967,5 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
     startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
 ];
+
+export const WIX_EVAL_RUNS: EvalRun[] = generateEvalRuns(WIX_SKILLS, WIX_SCENARIOS);

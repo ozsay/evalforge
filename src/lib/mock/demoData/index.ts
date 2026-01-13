@@ -23,6 +23,7 @@ import {
   DEMO_CODING_TOOLS,
   WIX_APP_BUILDER_PROJECT_ID,
   WIX_CHAT_PROJECT_ID,
+  WIX_DESIGN_SYSTEM_PROJECT_ID,
 } from "./shared";
 
 // Import Wix App Builder project data
@@ -31,9 +32,9 @@ import {
   WIX_SCENARIOS,
   WIX_SUITES,
   WIX_TARGET_GROUPS,
-  WIX_PROMPT_AGENTS,
   WIX_IMPROVEMENT_RUNS,
   WIX_APP_BUILDER_AGENT,
+  WIX_EVAL_RUNS,
 } from "./wixDashboard";
 
 // Import Wix Chat project data
@@ -76,21 +77,12 @@ const ALL_TARGET_GROUPS: TargetGroup[] = [
   ...WIX_DESIGN_SYSTEM_TARGET_GROUPS,
 ];
 const ALL_PROMPT_AGENTS: PromptAgent[] = [
-  ...WIX_PROMPT_AGENTS,
   ...WIX_CHAT_PROMPT_AGENTS,
 ];
 const ALL_IMPROVEMENT_RUNS: ImprovementRun[] = [
   ...WIX_IMPROVEMENT_RUNS,
   ...WIX_CHAT_IMPROVEMENT_RUNS,
 ];
-
-// Agent-to-project mapping (for filtering)
-// Built-in agents are available in all projects
-// Custom agents are project-specific
-const AGENT_PROJECT_MAP: Record<string, string | null> = {
-  "agent-wix-app-builder": WIX_APP_BUILDER_PROJECT_ID,
-  // Built-in agents have null (available in all projects)
-};
 
 // Combine agents: built-in agents + Wix App Builder (project-specific)
 const ALL_AGENTS: Agent[] = [
@@ -102,19 +94,31 @@ const ALL_AGENTS: Agent[] = [
 export function getAgentsForProject(projectId: string | undefined): Agent[] {
   if (!projectId) return ALL_AGENTS;
   
-  // Wix Chat should have no coding agents (only prompt agents)
-  if (projectId === WIX_CHAT_PROJECT_ID) return [];
-  
-  return ALL_AGENTS.filter((agent) => {
-    // Built-in agents are available in all projects (except Wix Chat, handled above)
-    if (agent.isBuiltIn) return true;
-    
-    // Check if agent is project-specific
-    const agentProjectId = AGENT_PROJECT_MAP[agent.id];
-    // If in map, only show if it matches the current project
-    // If not in map, exclude it (shouldn't happen, but safety check)
-    return agentProjectId !== undefined && agentProjectId === projectId;
-  });
+  switch (projectId) {
+    case WIX_APP_BUILDER_PROJECT_ID:
+      return [WIX_APP_BUILDER_AGENT];
+    case WIX_CHAT_PROJECT_ID:
+      return [];
+      case WIX_DESIGN_SYSTEM_PROJECT_ID:
+        return [...DEMO_AGENTS];
+    default:
+      return ALL_AGENTS;
+  }
+}
+
+const evalRuns = generateEvalRuns(ALL_SKILLS, ALL_SCENARIOS);
+
+export function getEvalRunsForProject(projectId: string | undefined): EvalRun[] {
+  switch (projectId) {
+    case WIX_APP_BUILDER_PROJECT_ID:
+      return WIX_EVAL_RUNS;
+    case WIX_CHAT_PROJECT_ID:
+      return evalRuns.filter((r) => r.projectId === WIX_CHAT_PROJECT_ID);
+    case WIX_DESIGN_SYSTEM_PROJECT_ID:
+      return evalRuns.filter((r) => r.projectId === WIX_DESIGN_SYSTEM_PROJECT_ID);
+    default:
+      return evalRuns;
+  }
 }
 
 // ==========================================
@@ -140,7 +144,7 @@ export function generateDemoData(): {
     testSuites: ALL_SUITES,
     targetGroups: ALL_TARGET_GROUPS,
     promptAgents: ALL_PROMPT_AGENTS,
-    evalRuns: generateEvalRuns(ALL_SKILLS, ALL_SCENARIOS),
+    evalRuns: evalRuns,
     agents: ALL_AGENTS,
     codingTools: DEMO_CODING_TOOLS,
     improvementRuns: ALL_IMPROVEMENT_RUNS,

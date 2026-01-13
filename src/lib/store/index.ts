@@ -52,7 +52,7 @@ import {
   ImprovementRunStatus,
 } from "@lib/types";
 import { parseSkillMd } from "@lib/utils/skillParser";
-import { generateDemoData } from "@lib/mock/demoData";
+import { generateDemoData, getEvalRunsForProject } from "@lib/mock/demoData";
 
 // ==========================================
 // Generate Demo Data at Module Load
@@ -1253,15 +1253,6 @@ export const usePromptAgents = () => {
   );
 };
 
-export const useEvalRuns = () => {
-  const tenant = useTenantSafe();
-  const runs = useStore((state) => state.evalRuns);
-  return useMemo(
-    () => tenant?.projectId ? runs.filter((r) => r.projectId === tenant.projectId) : runs,
-    [runs, tenant?.projectId]
-  );
-};
-
 export const useImprovementRuns = () => {
   const tenant = useTenantSafe();
   const runs = useStore((state) => state.improvementRuns);
@@ -1283,6 +1274,16 @@ export const useAgents = () => {
   return useMemo(
     () => tenant?.projectId ? getAgentsForProject(tenant.projectId) : allAgents,
     [allAgents, tenant?.projectId]
+  );
+};
+
+// Eval Runs filtering by project
+export const useEvalRuns = () => {
+  const tenant = useTenantSafe();
+  const runs = useStore((state) => state.evalRuns);
+  return useMemo(
+    () => tenant?.projectId ? getEvalRunsForProject(tenant.projectId) : runs,
+    [runs, tenant?.projectId]
   );
 };
 
