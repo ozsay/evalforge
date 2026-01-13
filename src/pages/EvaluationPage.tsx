@@ -21,14 +21,12 @@ import {
   Settings2,
   DollarSign,
   Timer,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
 import { Input, Select } from "@components/ui/Input";
-import { Badge, TrendBadge } from "@components/ui/Badge";
+import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 import { useTenant } from "@lib/context";
@@ -875,6 +873,85 @@ function ResultCard({
 }
 
 // ==========================================
+// Metric with Vertical Trend Indicator
+// ==========================================
+
+function MetricWithVerticalTrend({
+  value,
+  formattedValue,
+  previous,
+  inverse = false,
+  colorByValue = false,
+  icon,
+}: {
+  value: number;
+  formattedValue: string;
+  previous?: number;
+  inverse?: boolean;
+  colorByValue?: boolean;
+  icon?: React.ReactNode;
+}) {
+  const hasTrend = previous !== undefined && previous > 0;
+  const delta = hasTrend ? value - previous : 0;
+  const percentChange = hasTrend && previous !== 0 ? ((delta / previous) * 100) : 0;
+  const absChange = Math.abs(percentChange);
+  
+  // Determine if this is an improvement or regression
+  const isImprovement = inverse ? delta < 0 : delta > 0;
+  const isRegression = inverse ? delta > 0 : delta < 0;
+  const isSignificant = absChange >= 3;
+  const showImprovement = hasTrend && isImprovement && isSignificant;
+  const showRegression = hasTrend && isRegression && isSignificant;
+  
+  // Format the trend text
+  const trendText = `${percentChange > 0 ? "+" : ""}${percentChange.toFixed(0)}%`;
+  
+  // Get value color based on the value itself (for pass rate)
+  const getValueColor = () => {
+    if (!colorByValue) return "text-gray-600";
+    if (value >= 80) return "text-success-600";
+    if (value >= 50) return "text-warning-600";
+    return "text-error-600";
+  };
+
+  return (
+    <div className="grid grid-rows-[12px_auto_12px] items-center justify-items-center min-w-[50px]">
+      {/* Top row: improvement trend or empty */}
+      <div className="h-[12px] flex items-center">
+        {showImprovement && (
+          <div className="text-[10px] font-semibold text-success-500 flex items-center gap-0.5">
+            <svg className="w-2 h-2" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
+            </svg>
+            {trendText}
+          </div>
+        )}
+      </div>
+      
+      {/* Middle row: metric value (always centered) */}
+      <div className="flex items-center gap-1">
+        {icon}
+        <span className={cn("text-sm font-semibold leading-none", getValueColor())}>
+          {formattedValue}
+        </span>
+      </div>
+      
+      {/* Bottom row: regression trend or empty */}
+      <div className="h-[12px] flex items-center">
+        {showRegression && (
+          <div className="text-[10px] font-semibold text-error-500 flex items-center gap-0.5">
+            <svg className="w-2 h-2" viewBox="0 0 12 12" fill="none">
+              <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
+            </svg>
+            {trendText}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // History Runs List - Grouped by Skill with Trends
 // ==========================================
 
@@ -968,65 +1045,31 @@ function HistoryRunsList({ runs }: HistoryRunsListProps) {
                       </p>
                     </div>
 
-                    {/* Pass Rate with trend */}
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-sm font-medium">
-                            {run.aggregateMetrics.passRate.toFixed(0)}%
-                          </span>
-                        </div>
-                      </div>
-                      {prevRun && (
-                        <TrendBadge
-                          current={run.aggregateMetrics.passRate}
-                          previous={prevRun.aggregateMetrics.passRate}
-                          format="percent"
-                          threshold={1}
-                        />
-                      )}
-                    </div>
+                    {/* Pass Rate with vertical trend */}
+                    <MetricWithVerticalTrend
+                      value={run.aggregateMetrics.passRate}
+                      formattedValue={`${run.aggregateMetrics.passRate.toFixed(0)}%`}
+                      previous={prevRun?.aggregateMetrics.passRate}
+                      colorByValue={true}
+                    />
 
-                    {/* Cost with trend */}
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            {formatCost(cost)}
-                          </span>
-                        </div>
-                      </div>
-                      {prevRun && cost > 0 && prevCost > 0 && (
-                        <TrendBadge
-                          current={cost}
-                          previous={prevCost}
-                          format="currency"
-                          inverse={true}
-                        />
-                      )}
-                    </div>
+                    {/* Cost with vertical trend */}
+                    <MetricWithVerticalTrend
+                      value={cost}
+                      formattedValue={formatCost(cost)}
+                      previous={prevCost > 0 ? prevCost : undefined}
+                      inverse={true}
+                      icon={<DollarSign className="w-3 h-3 text-gray-400 -mr-0.5" />}
+                    />
 
-                    {/* Duration with trend */}
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1">
-                          <Timer className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            {formatDuration(duration)}
-                          </span>
-                        </div>
-                      </div>
-                      {prevRun && (
-                        <TrendBadge
-                          current={duration}
-                          previous={prevDuration}
-                          format="duration"
-                          inverse={true}
-                        />
-                      )}
-                    </div>
+                    {/* Duration with vertical trend */}
+                    <MetricWithVerticalTrend
+                      value={duration}
+                      formattedValue={formatDuration(duration)}
+                      previous={prevDuration > 0 ? prevDuration : undefined}
+                      inverse={true}
+                      icon={<Timer className="w-3 h-3 text-gray-400" />}
+                    />
 
                     {/* Status badge */}
                     <Badge
