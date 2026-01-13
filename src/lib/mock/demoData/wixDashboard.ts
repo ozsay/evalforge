@@ -13,7 +13,6 @@ import type {
   EvalRun,
 } from "@lib/types";
 import { createSkill, WIX_APP_BUILDER_PROJECT_ID } from "./shared";
-import { generateEvalRuns } from "./generators";
 
 // ==========================================
 // Wix App Builder Agent (project-specific)
@@ -968,4 +967,489 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
   },
 ];
 
-export const WIX_EVAL_RUNS: EvalRun[] = generateEvalRuns(WIX_SKILLS, WIX_SCENARIOS);
+// ==========================================
+// Hand-Crafted Eval Runs for Wix App Builder
+// Shows realistic trends: improvements, regressions, cost changes
+// ==========================================
+
+/**
+ * Helper to create an EvalRun with specific metrics
+ */
+function createEvalRun(params: {
+  id: string;
+  name: string;
+  skillId: string;
+  skillName: string;
+  scenarioId: string;
+  scenarioName: string;
+  daysAgo: number;
+  hoursAgo?: number;
+  passRate: number;
+  passed: number;
+  failed: number;
+  totalDuration: number;
+  costUsd: number;
+  totalTokens: number;
+  model: string;
+  provider: "anthropic" | "openai" | "google";
+  agentId?: string;
+  agentName?: string;
+}): EvalRun {
+  const now = new Date();
+  const startDate = new Date(now.getTime() - params.daysAgo * 24 * 60 * 60 * 1000 - (params.hoursAgo || 0) * 60 * 60 * 1000);
+  const endDate = new Date(startDate.getTime() + params.totalDuration + 5000);
+
+  return {
+    id: params.id,
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: params.name,
+    skillId: params.skillId,
+    skillName: params.skillName,
+    config: {
+      scenarioIds: [params.scenarioId],
+      agentIds: params.agentId ? [params.agentId] : [],
+      parallelism: 1,
+      timeout: 60000,
+    },
+    status: "completed",
+    progress: 100,
+    results: [{
+      id: `result-${params.id}`,
+      skillVersionId: `${params.skillId}-v1`,
+      modelConfig: { provider: params.provider, model: params.model, temperature: 0.3, maxTokens: 8192 },
+      agentId: params.agentId,
+      agentName: params.agentName,
+      scenarioId: params.scenarioId,
+      scenarioName: params.scenarioName,
+      assertionResults: [],
+      passed: params.passed,
+      failed: params.failed,
+      passRate: params.passRate,
+      duration: params.totalDuration,
+      metrics: {
+        totalAssertions: params.passed + params.failed,
+        passed: params.passed,
+        failed: params.failed,
+        skipped: 0,
+        errors: 0,
+        passRate: params.passRate,
+        avgDuration: params.totalDuration / (params.passed + params.failed),
+        totalDuration: params.totalDuration,
+      },
+    }],
+    aggregateMetrics: {
+      totalAssertions: params.passed + params.failed,
+      passed: params.passed,
+      failed: params.failed,
+      skipped: 0,
+      errors: 0,
+      passRate: params.passRate,
+      avgDuration: params.totalDuration / (params.passed + params.failed),
+      totalDuration: params.totalDuration,
+    },
+    llmTraceSummary: {
+      totalSteps: Math.floor(params.totalTokens / 800),
+      totalDurationMs: params.totalDuration,
+      totalTokens: {
+        prompt: Math.floor(params.totalTokens * 0.7),
+        completion: Math.floor(params.totalTokens * 0.3),
+        total: params.totalTokens,
+      },
+      totalCostUsd: params.costUsd,
+      stepTypeBreakdown: {
+        completion: { count: 3, durationMs: params.totalDuration * 0.4, tokens: Math.floor(params.totalTokens * 0.5), costUsd: params.costUsd * 0.5 },
+        tool_use: { count: 5, durationMs: params.totalDuration * 0.3, tokens: Math.floor(params.totalTokens * 0.3), costUsd: params.costUsd * 0.3 },
+        thinking: { count: 2, durationMs: params.totalDuration * 0.3, tokens: Math.floor(params.totalTokens * 0.2), costUsd: params.costUsd * 0.2 },
+      },
+      modelBreakdown: {
+        [params.model]: { count: 10, durationMs: params.totalDuration, tokens: params.totalTokens, costUsd: params.costUsd },
+      },
+      modelsUsed: [params.model],
+    },
+    startedAt: startDate.toISOString(),
+    completedAt: endDate.toISOString(),
+  };
+}
+
+export const WIX_EVAL_RUNS: EvalRun[] = [
+  // ==========================================
+  // Story A: Dashboard Page - Score Improvement
+  // 65% → 78% → 88% over 14 days, cost stable ~$0.12
+  // ==========================================
+  createEvalRun({
+    id: "eval-dash-1",
+    name: "Dashboard Page - Analytics (baseline)",
+    skillId: "skill-wix-dashboard-page",
+    skillName: "Dashboard Page",
+    scenarioId: "scenario-dashboard-analytics",
+    scenarioName: "Analytics Dashboard",
+    daysAgo: 14,
+    passRate: 65,
+    passed: 13,
+    failed: 7,
+    totalDuration: 42000,
+    costUsd: 0.11,
+    totalTokens: 12500,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-dash-2",
+    name: "Dashboard Page - Analytics (improved prompts)",
+    skillId: "skill-wix-dashboard-page",
+    skillName: "Dashboard Page",
+    scenarioId: "scenario-dashboard-analytics",
+    scenarioName: "Analytics Dashboard",
+    daysAgo: 7,
+    passRate: 78,
+    passed: 16,
+    failed: 5,
+    totalDuration: 44000,
+    costUsd: 0.12,
+    totalTokens: 13200,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-dash-3",
+    name: "Dashboard Page - Analytics (optimized)",
+    skillId: "skill-wix-dashboard-page",
+    skillName: "Dashboard Page",
+    scenarioId: "scenario-dashboard-analytics",
+    scenarioName: "Analytics Dashboard",
+    daysAgo: 2,
+    passRate: 88,
+    passed: 18,
+    failed: 2,
+    totalDuration: 43000,
+    costUsd: 0.12,
+    totalTokens: 13000,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // ==========================================
+  // Story B: Backend API - Cost Optimization  
+  // Cost: $0.18 → $0.14 → $0.09, score stable ~82%
+  // Switched from Claude to GPT-4 Turbo (cheaper)
+  // ==========================================
+  createEvalRun({
+    id: "eval-backend-1",
+    name: "Backend API - Order Notification (Claude)",
+    skillId: "skill-wix-backend-api",
+    skillName: "Backend API",
+    scenarioId: "scenario-blueprint-order-notification",
+    scenarioName: "Order Notification",
+    daysAgo: 10,
+    passRate: 83,
+    passed: 10,
+    failed: 2,
+    totalDuration: 38000,
+    costUsd: 0.18,
+    totalTokens: 18500,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-backend-2",
+    name: "Backend API - Order Notification (GPT-4 Turbo)",
+    skillId: "skill-wix-backend-api",
+    skillName: "Backend API",
+    scenarioId: "scenario-blueprint-order-notification",
+    scenarioName: "Order Notification",
+    daysAgo: 5,
+    passRate: 81,
+    passed: 10,
+    failed: 2,
+    totalDuration: 35000,
+    costUsd: 0.14,
+    totalTokens: 16200,
+    model: "gpt-4-turbo",
+    provider: "openai",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-backend-3",
+    name: "Backend API - Order Notification (optimized)",
+    skillId: "skill-wix-backend-api",
+    skillName: "Backend API",
+    scenarioId: "scenario-blueprint-order-notification",
+    scenarioName: "Order Notification",
+    daysAgo: 1,
+    passRate: 82,
+    passed: 10,
+    failed: 2,
+    totalDuration: 32000,
+    costUsd: 0.09,
+    totalTokens: 11800,
+    model: "gpt-4-turbo",
+    provider: "openai",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // ==========================================
+  // Story C: Embedded Script - Duration Regression
+  // Duration: 45s → 62s → 89s, score stable ~75%
+  // New assertions added complexity
+  // ==========================================
+  createEvalRun({
+    id: "eval-embed-1",
+    name: "Embedded Script - Contact Form (v1)",
+    skillId: "skill-wix-embedded-script",
+    skillName: "Embedded Script",
+    scenarioId: "scenario-widget-contact-form",
+    scenarioName: "Contact Form Widget",
+    daysAgo: 12,
+    passRate: 75,
+    passed: 6,
+    failed: 2,
+    totalDuration: 45000,
+    costUsd: 0.08,
+    totalTokens: 9200,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-embed-2",
+    name: "Embedded Script - Contact Form (added tests)",
+    skillId: "skill-wix-embedded-script",
+    skillName: "Embedded Script",
+    scenarioId: "scenario-widget-contact-form",
+    scenarioName: "Contact Form Widget",
+    daysAgo: 6,
+    passRate: 74,
+    passed: 9,
+    failed: 3,
+    totalDuration: 62000,
+    costUsd: 0.10,
+    totalTokens: 11500,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-embed-3",
+    name: "Embedded Script - Contact Form (more assertions)",
+    skillId: "skill-wix-embedded-script",
+    skillName: "Embedded Script",
+    scenarioId: "scenario-widget-contact-form",
+    scenarioName: "Contact Form Widget",
+    daysAgo: 3,
+    passRate: 76,
+    passed: 12,
+    failed: 4,
+    totalDuration: 89000,
+    costUsd: 0.14,
+    totalTokens: 15800,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // ==========================================
+  // Story D: Generate Blueprint GPT - Score Degradation
+  // Score: 91% → 84% → 72%, recent model issues
+  // ==========================================
+  createEvalRun({
+    id: "eval-blueprint-gpt-1",
+    name: "Generate Blueprint - Shift Manager (stable)",
+    skillId: "skill-wix-blueprint-gpt",
+    skillName: "Generate Blueprint - GPT",
+    scenarioId: "scenario-blueprint-shift-manager",
+    scenarioName: "Shift Manager",
+    daysAgo: 8,
+    passRate: 91,
+    passed: 10,
+    failed: 1,
+    totalDuration: 28000,
+    costUsd: 0.07,
+    totalTokens: 8500,
+    model: "gpt-4o",
+    provider: "openai",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-blueprint-gpt-2",
+    name: "Generate Blueprint - Shift Manager (after update)",
+    skillId: "skill-wix-blueprint-gpt",
+    skillName: "Generate Blueprint - GPT",
+    scenarioId: "scenario-blueprint-shift-manager",
+    scenarioName: "Shift Manager",
+    daysAgo: 4,
+    passRate: 84,
+    passed: 9,
+    failed: 2,
+    totalDuration: 31000,
+    costUsd: 0.08,
+    totalTokens: 9200,
+    model: "gpt-4o",
+    provider: "openai",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-blueprint-gpt-3",
+    name: "Generate Blueprint - Shift Manager (regression)",
+    skillId: "skill-wix-blueprint-gpt",
+    skillName: "Generate Blueprint - GPT",
+    scenarioId: "scenario-blueprint-shift-manager",
+    scenarioName: "Shift Manager",
+    daysAgo: 1,
+    hoursAgo: 3,
+    passRate: 72,
+    passed: 8,
+    failed: 3,
+    totalDuration: 34000,
+    costUsd: 0.09,
+    totalTokens: 10100,
+    model: "gpt-4o",
+    provider: "openai",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // ==========================================
+  // Additional runs for variety
+  // ==========================================
+  
+  // Blueprint comparison: Gemini vs Claude (same scenario)
+  createEvalRun({
+    id: "eval-blueprint-gemini-1",
+    name: "Generate Blueprint - Event Countdown (Gemini)",
+    skillId: "skill-wix-blueprint-gemini",
+    skillName: "Generate Blueprint - Gemini",
+    scenarioId: "scenario-blueprint-event-countdown",
+    scenarioName: "Event Countdown",
+    daysAgo: 5,
+    passRate: 78,
+    passed: 7,
+    failed: 2,
+    totalDuration: 22000,
+    costUsd: 0.04,
+    totalTokens: 7800,
+    model: "gemini-2.0-flash",
+    provider: "google",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-blueprint-claude-1",
+    name: "Generate Blueprint - Event Countdown (Claude)",
+    skillId: "skill-wix-blueprint-claude",
+    skillName: "Generate Blueprint - Claude",
+    scenarioId: "scenario-blueprint-event-countdown",
+    scenarioName: "Event Countdown",
+    daysAgo: 5,
+    hoursAgo: 2,
+    passRate: 89,
+    passed: 8,
+    failed: 1,
+    totalDuration: 35000,
+    costUsd: 0.11,
+    totalTokens: 12200,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // Recent widget tests
+  createEvalRun({
+    id: "eval-widget-testimonials",
+    name: "Site Widget - Testimonials Carousel",
+    skillId: "skill-wix-embedded-script",
+    skillName: "Embedded Script",
+    scenarioId: "scenario-widget-testimonials",
+    scenarioName: "Testimonials Carousel",
+    daysAgo: 2,
+    hoursAgo: 8,
+    passRate: 85,
+    passed: 11,
+    failed: 2,
+    totalDuration: 52000,
+    costUsd: 0.11,
+    totalTokens: 12800,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+  createEvalRun({
+    id: "eval-widget-pricing",
+    name: "Site Widget - Pricing Table",
+    skillId: "skill-wix-embedded-script",
+    skillName: "Embedded Script",
+    scenarioId: "scenario-widget-pricing-table",
+    scenarioName: "Pricing Table Widget",
+    daysAgo: 1,
+    hoursAgo: 12,
+    passRate: 92,
+    passed: 11,
+    failed: 1,
+    totalDuration: 48000,
+    costUsd: 0.10,
+    totalTokens: 11500,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // Dashboard settings test  
+  createEvalRun({
+    id: "eval-dash-settings",
+    name: "Dashboard Page - Settings Form",
+    skillId: "skill-wix-dashboard-page",
+    skillName: "Dashboard Page",
+    scenarioId: "scenario-dashboard-settings",
+    scenarioName: "App Settings Page",
+    daysAgo: 3,
+    passRate: 81,
+    passed: 9,
+    failed: 2,
+    totalDuration: 39000,
+    costUsd: 0.10,
+    totalTokens: 11200,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+
+  // Most recent run (today)
+  createEvalRun({
+    id: "eval-dash-wizard",
+    name: "Dashboard Page - Form Wizard",
+    skillId: "skill-wix-dashboard-page",
+    skillName: "Dashboard Page",
+    scenarioId: "scenario-dashboard-form-wizard",
+    scenarioName: "Multi-step Form Wizard",
+    daysAgo: 0,
+    hoursAgo: 2,
+    passRate: 86,
+    passed: 12,
+    failed: 2,
+    totalDuration: 55000,
+    costUsd: 0.13,
+    totalTokens: 14200,
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic",
+    agentId: "agent-wix-app-builder",
+    agentName: "Wix App Builder",
+  }),
+].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());

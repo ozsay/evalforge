@@ -1333,13 +1333,18 @@ export const useTargetGroupScenarios = (targetGroupId: string) => {
 };
 
 export const useRecentEvalRuns = (limit = 10) => {
+  const tenant = useTenantSafe();
   const evalRuns = useStore((state) => state.evalRuns);
   return useMemo(
-    () =>
-      [...evalRuns]
+    () => {
+      const filtered = tenant?.projectId
+        ? evalRuns.filter((r) => r.projectId === tenant.projectId)
+        : evalRuns;
+      return [...filtered]
         .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-        .slice(0, limit),
-    [evalRuns, limit]
+        .slice(0, limit);
+    },
+    [evalRuns, limit, tenant?.projectId]
   );
 };
 

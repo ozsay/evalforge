@@ -106,18 +106,29 @@ export function getAgentsForProject(projectId: string | undefined): Agent[] {
   }
 }
 
-const evalRuns = generateEvalRuns(ALL_SKILLS, ALL_SCENARIOS);
+// Generate runs for non-Wix App Builder projects
+// For Wix Chat and Design System, we use generated data
+const generatedRuns = generateEvalRuns([], [
+  ...WIX_CHAT_SCENARIOS,
+  ...WIX_DESIGN_SYSTEM_SCENARIOS,
+]);
+
+// Combined eval runs: hand-crafted for Wix App Builder + generated for others
+const ALL_EVAL_RUNS: EvalRun[] = [
+  ...WIX_EVAL_RUNS, // Hand-crafted realistic data with trends
+  ...generatedRuns, // Generated for other projects
+];
 
 export function getEvalRunsForProject(projectId: string | undefined): EvalRun[] {
   switch (projectId) {
     case WIX_APP_BUILDER_PROJECT_ID:
       return WIX_EVAL_RUNS;
     case WIX_CHAT_PROJECT_ID:
-      return evalRuns.filter((r) => r.projectId === WIX_CHAT_PROJECT_ID);
+      return generatedRuns.filter((r) => r.projectId === WIX_CHAT_PROJECT_ID);
     case WIX_DESIGN_SYSTEM_PROJECT_ID:
-      return evalRuns.filter((r) => r.projectId === WIX_DESIGN_SYSTEM_PROJECT_ID);
+      return generatedRuns.filter((r) => r.projectId === WIX_DESIGN_SYSTEM_PROJECT_ID);
     default:
-      return evalRuns;
+      return ALL_EVAL_RUNS;
   }
 }
 
@@ -144,7 +155,7 @@ export function generateDemoData(): {
     testSuites: ALL_SUITES,
     targetGroups: ALL_TARGET_GROUPS,
     promptAgents: ALL_PROMPT_AGENTS,
-    evalRuns: evalRuns,
+    evalRuns: ALL_EVAL_RUNS,
     agents: ALL_AGENTS,
     codingTools: DEMO_CODING_TOOLS,
     improvementRuns: ALL_IMPROVEMENT_RUNS,

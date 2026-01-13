@@ -323,18 +323,26 @@ export function ResultsPage() {
 
             {/* Run List */}
             <div className="space-y-3">
-              {filteredRuns.map((run) => (
-                <RunCard
-                  key={run.id}
-                  run={run}
-                  isExpanded={expandedRun === run.id}
-                  isSelected={selectedRuns.includes(run.id)}
-                  onToggle={() =>
-                    setExpandedRun(expandedRun === run.id ? null : run.id)
-                  }
-                  onSelect={() => toggleRunSelection(run.id)}
-                />
-              ))}
+              {filteredRuns.map((run, index) => {
+                // Find the previous run for the same skill (for trend comparison)
+                const previousRun = filteredRuns
+                  .slice(index + 1)
+                  .find((r) => r.skillId === run.skillId && r.status === "completed");
+                
+                return (
+                  <RunCard
+                    key={run.id}
+                    run={run}
+                    previousRun={previousRun}
+                    isExpanded={expandedRun === run.id}
+                    isSelected={selectedRuns.includes(run.id)}
+                    onToggle={() =>
+                      setExpandedRun(expandedRun === run.id ? null : run.id)
+                    }
+                    onSelect={() => toggleRunSelection(run.id)}
+                  />
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -563,20 +571,105 @@ function TracingSummaryCard({
   );
 }
 
+// Metric with vertical trend indicator
+function MetricWithVerticalTrend({
+  current,
+  previous,
+  format,
+  inverse = false,
+  colorByValue = false,
+}: {
+  current: number;
+  previous?: number;
+  format: "percent" | "currency";
+  inverse?: boolean;
+  colorByValue?: boolean;
+}) {
+  const hasTrend = previous !== undefined && previous > 0;
+  const delta = hasTrend ? current - previous : 0;
+  const percentChange = hasTrend && previous !== 0 ? ((delta / previous) * 100) : 0;
+  const absChange = Math.abs(percentChange);
+  
+  // Determine if this is an improvement or regression
+  const isImprovement = inverse ? delta < 0 : delta > 0;
+  const isRegression = inverse ? delta > 0 : delta < 0;
+  const isSignificant = absChange >= 3;
+  const showImprovement = hasTrend && isImprovement && isSignificant;
+  const showRegression = hasTrend && isRegression && isSignificant;
+  
+  // Format the display value
+  const displayValue = format === "currency" 
+    ? `$${current.toFixed(2)}`
+    : `${current.toFixed(0)}%`;
+  
+  // Format the trend text
+  const trendText = `${percentChange > 0 ? "+" : ""}${percentChange.toFixed(0)}%`;
+  
+  // Get value color based on the value itself (for pass rate)
+  const getValueColor = () => {
+    if (!colorByValue) return "text-gray-600"; // Neutral for cost
+    if (current >= 80) return "text-success-600";
+    if (current >= 50) return "text-warning-600";
+    return "text-error-600";
+  };
+
+  return (
+    <div className="grid grid-rows-[14px_auto_14px] items-center justify-items-center min-w-[60px]">
+      {/* Top row: improvement trend or empty */}
+      <div className="h-[14px] flex items-center">
+        {showImprovement && (
+          <div className="text-[11px] font-semibold text-success-500 flex items-center gap-0.5">
+            <svg className="w-2.5 h-2.5" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
+            </svg>
+            {trendText}
+          </div>
+        )}
+      </div>
+      
+      {/* Middle row: metric value (always centered) */}
+      <span className={cn("text-lg font-bold leading-none", getValueColor())}>
+        {displayValue}
+      </span>
+      
+      {/* Bottom row: regression trend or empty */}
+      <div className="h-[14px] flex items-center">
+        {showRegression && (
+          <div className="text-[11px] font-semibold text-error-500 flex items-center gap-0.5">
+            <svg className="w-2.5 h-2.5" viewBox="0 0 12 12" fill="none">
+              <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
+            </svg>
+            {trendText}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Run Card
 function RunCard({
   run,
+  previousRun,
   isExpanded,
   isSelected,
   onToggle,
   onSelect,
 }: {
   run: EvalRun;
+  previousRun?: EvalRun;
   isExpanded: boolean;
   isSelected: boolean;
   onToggle: () => void;
   onSelect: () => void;
 }) {
+  // Get metrics for trend comparison
+  const currentCost = run.llmTraceSummary?.totalCostUsd || 0;
+  const prevCost = previousRun?.llmTraceSummary?.totalCostUsd || 0;
+  const currentDuration = run.aggregateMetrics.totalDuration;
+  const prevDuration = previousRun?.aggregateMetrics.totalDuration || 0;
+  const hasPrevious = previousRun && previousRun.status === "completed";
+
   return (
     <Card className={cn(isSelected && "ring-2 ring-primary-300")}>
       <CardContent className="p-0">
@@ -627,62 +720,36 @@ function RunCard({
           </div>
 
           {run.status === "completed" && (
-            <div className="flex items-center gap-4">
-              {/* LLM Tracing Badges */}
-              {run.llmTraceSummary && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md">
-                    <DollarSign className="w-3 h-3" />
-                    ${run.llmTraceSummary.totalCostUsd.toFixed(3)}
-                  </span>
-                  <span className="flex items-center gap-1 px-2 py-1 bg-violet-50 text-violet-700 rounded-md">
-                    <Zap className="w-3 h-3" />
-                    {formatTokenCount(run.llmTraceSummary.totalTokens.total)}
-                  </span>
+            <div className="flex items-center gap-6">
+              {/* Pass/Fail counts */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-success-500" />
+                  <span className="font-medium text-gray-700">{run.aggregateMetrics.passed}</span>
                 </div>
-              )}
-
-              {/* Mini Progress Bar */}
-              <div className="w-24">
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                  <span>{run.aggregateMetrics.passed} passed</span>
-                  <span>{run.aggregateMetrics.failed} failed</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
-                  <div
-                    className="bg-success-500"
-                    style={{
-                      width: `${
-                        (run.aggregateMetrics.passed /
-                          Math.max(run.aggregateMetrics.totalAssertions, 1)) *
-                        100
-                      }%`,
-                    }}
-                  />
-                  <div
-                    className="bg-error-500"
-                    style={{
-                      width: `${
-                        (run.aggregateMetrics.failed /
-                          Math.max(run.aggregateMetrics.totalAssertions, 1)) *
-                        100
-                      }%`,
-                    }}
-                  />
+                <div className="flex items-center gap-1 text-sm">
+                  <XCircle className="w-4 h-4 text-error-500" />
+                  <span className="font-medium text-gray-700">{run.aggregateMetrics.failed}</span>
                 </div>
               </div>
 
-              <Badge
-                variant={
-                  run.aggregateMetrics.passRate >= 80
-                    ? "success"
-                    : run.aggregateMetrics.passRate >= 50
-                    ? "warning"
-                    : "error"
-                }
-              >
-                {run.aggregateMetrics.passRate.toFixed(1)}%
-              </Badge>
+              {/* Cost with vertical trend */}
+              {run.llmTraceSummary && (
+                <MetricWithVerticalTrend
+                  current={currentCost}
+                  previous={hasPrevious ? prevCost : undefined}
+                  format="currency"
+                  inverse={true}
+                />
+              )}
+
+              {/* Pass Rate with vertical trend */}
+              <MetricWithVerticalTrend
+                current={run.aggregateMetrics.passRate}
+                previous={hasPrevious ? previousRun.aggregateMetrics.passRate : undefined}
+                format="percent"
+                colorByValue={true}
+              />
             </div>
           )}
         </div>
@@ -768,9 +835,9 @@ function ResultWithTracing({ result }: { result: EvalRun["results"][0] }) {
           {/* Tracing mini-summary */}
           {result.llmTrace && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
-                ${result.llmTrace.summary.totalCostUsd.toFixed(4)}
+              <span className="flex items-center">
+                <DollarSign className="w-3 h-3 -mr-0.5" />
+                {result.llmTrace.summary.totalCostUsd.toFixed(4)}
               </span>
               <span className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
@@ -855,10 +922,10 @@ function LLMTracingTable({ trace }: { trace: NonNullable<EvalRun["results"][0]["
             {formatTokenCount(trace.summary.totalTokens.total)} tokens
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-gray-400" />
+        <div className="flex items-center">
+          <DollarSign className="w-3.5 h-3.5 text-gray-400 -mr-0.5" />
           <span className="text-sm text-gray-600">
-            ${trace.summary.totalCostUsd.toFixed(4)}
+            {trace.summary.totalCostUsd.toFixed(4)}
           </span>
         </div>
         <div className="flex-1" />

@@ -19,12 +19,16 @@ import {
   Zap,
   Terminal,
   Settings2,
+  DollarSign,
+  Timer,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
 import { Input, Select } from "@components/ui/Input";
-import { Badge } from "@components/ui/Badge";
+import { Badge, TrendBadge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 import { useTenant } from "@lib/context";
@@ -691,43 +695,7 @@ export function EvaluationPage() {
                   description="Run your first evaluation to see results here"
                 />
               ) : (
-                <div className="space-y-3">
-                  {recentRuns.map((run) => (
-                    <Card key={run.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{run.name}</h4>
-                            <p className="text-sm text-gray-500">
-                              {run.skillName} • {run.results.length} result(s)
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="text-sm font-medium">
-                                {run.aggregateMetrics.passRate.toFixed(1)}% pass
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {formatRelativeTime(run.startedAt)}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={
-                                run.status === "completed"
-                                  ? "success"
-                                  : run.status === "failed"
-                                  ? "error"
-                                  : "gray"
-                              }
-                            >
-                              {run.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <HistoryRunsList runs={recentRuns} />
               )}
             </TabsContent>
           </Tabs>
@@ -903,5 +871,183 @@ function ResultCard({
         )}
       </AnimatePresence>
     </Card>
+  );
+}
+
+// ==========================================
+// History Runs List - Grouped by Skill with Trends
+// ==========================================
+
+interface HistoryRunsListProps {
+  runs: EvalRun[];
+}
+
+function HistoryRunsList({ runs }: HistoryRunsListProps) {
+  // Group runs by skillId
+  const groupedBySkill = runs.reduce((acc, run) => {
+    const key = run.skillId;
+    if (!acc[key]) {
+      acc[key] = {
+        skillName: run.skillName,
+        runs: [],
+      };
+    }
+    acc[key].runs.push(run);
+    return acc;
+  }, {} as Record<string, { skillName: string; runs: EvalRun[] }>);
+
+  // Sort groups by most recent run
+  const sortedGroups = Object.entries(groupedBySkill).sort((a, b) => {
+    const aLatest = new Date(a[1].runs[0].startedAt).getTime();
+    const bLatest = new Date(b[1].runs[0].startedAt).getTime();
+    return bLatest - aLatest;
+  });
+
+  // Helper to get previous run for computing trends
+  const getPreviousRun = (runs: EvalRun[], index: number): EvalRun | null => {
+    return index < runs.length - 1 ? runs[index + 1] : null;
+  };
+
+  // Format duration in seconds
+  const formatDuration = (ms: number) => {
+    const seconds = Math.round(ms / 1000);
+    return `${seconds}s`;
+  };
+
+  // Format cost
+  const formatCost = (usd: number) => {
+    return `$${usd.toFixed(2)}`;
+  };
+
+  return (
+    <div className="space-y-6">
+      {sortedGroups.map(([skillId, group]) => (
+        <Card key={skillId}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderKanban className="w-4 h-4 text-violet-500" />
+              {group.skillName}
+              <Badge variant="gray" size="sm">
+                {group.runs.length} run{group.runs.length !== 1 ? "s" : ""}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {group.runs.map((run, index) => {
+                const prevRun = getPreviousRun(group.runs, index);
+                const cost = run.llmTraceSummary?.totalCostUsd || 0;
+                const prevCost = prevRun?.llmTraceSummary?.totalCostUsd || 0;
+                const duration = run.aggregateMetrics.totalDuration;
+                const prevDuration = prevRun?.aggregateMetrics.totalDuration || 0;
+
+                return (
+                  <div
+                    key={run.id}
+                    className={cn(
+                      "flex items-center gap-4 p-3 rounded-lg border transition-colors",
+                      index === 0
+                        ? "bg-gray-50 border-gray-200"
+                        : "border-gray-100 hover:bg-gray-50"
+                    )}
+                  >
+                    {/* Run name and time */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {run.name}
+                        </p>
+                        {index === 0 && (
+                          <Badge variant="primary" size="sm">
+                            Latest
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {formatRelativeTime(run.startedAt)}
+                      </p>
+                    </div>
+
+                    {/* Pass Rate with trend */}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-sm font-medium">
+                            {run.aggregateMetrics.passRate.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                      {prevRun && (
+                        <TrendBadge
+                          current={run.aggregateMetrics.passRate}
+                          previous={prevRun.aggregateMetrics.passRate}
+                          format="percent"
+                          threshold={1}
+                        />
+                      )}
+                    </div>
+
+                    {/* Cost with trend */}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {formatCost(cost)}
+                          </span>
+                        </div>
+                      </div>
+                      {prevRun && cost > 0 && prevCost > 0 && (
+                        <TrendBadge
+                          current={cost}
+                          previous={prevCost}
+                          format="currency"
+                          inverse={true}
+                        />
+                      )}
+                    </div>
+
+                    {/* Duration with trend */}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="flex items-center gap-1">
+                          <Timer className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {formatDuration(duration)}
+                          </span>
+                        </div>
+                      </div>
+                      {prevRun && (
+                        <TrendBadge
+                          current={duration}
+                          previous={prevDuration}
+                          format="duration"
+                          inverse={true}
+                        />
+                      )}
+                    </div>
+
+                    {/* Status badge */}
+                    <Badge
+                      variant={
+                        run.status === "completed"
+                          ? "success"
+                          : run.status === "failed"
+                          ? "error"
+                          : "gray"
+                      }
+                      size="sm"
+                    >
+                      {run.status}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

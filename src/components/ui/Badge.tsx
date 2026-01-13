@@ -93,3 +93,81 @@ export function StatusBadge({ status, ...props }: StatusBadgeProps) {
   );
 }
 
+// ==========================================
+// Trend Badge - Shows improvement/regression
+// ==========================================
+
+type TrendDirection = "up" | "down" | "stable";
+
+interface TrendBadgeProps {
+  current: number;
+  previous: number;
+  inverse?: boolean;
+  format?: "percent" | "currency" | "duration" | "number";
+  threshold?: number;
+  size?: BadgeSize;
+  className?: string;
+  iconOnly?: boolean;
+}
+
+export function TrendBadge({
+  current,
+  previous,
+  inverse = false,
+  className,
+  iconOnly = false,
+}: TrendBadgeProps) {
+  const delta = current - previous;
+  const percentChange = previous !== 0 ? ((delta / previous) * 100) : 0;
+  const absPercentChange = Math.abs(percentChange);
+  
+  let direction: TrendDirection = "stable";
+  if (absPercentChange < 3) {
+    direction = "stable";
+  } else if (delta > 0) {
+    direction = "up";
+  } else if (delta < 0) {
+    direction = "down";
+  }
+  
+  if (direction === "stable") {
+    return null;
+  }
+  
+  const isImproved = inverse ? direction === "down" : direction === "up";
+  const isRegressed = inverse ? direction === "up" : direction === "down";
+  
+  const colorClass = isImproved 
+    ? "text-success-600" 
+    : isRegressed 
+      ? "text-error-600" 
+      : "text-gray-500";
+  
+  let displayValue = "";
+  if (!iconOnly) {
+    const sign = percentChange > 0 ? "+" : "";
+    displayValue = `${sign}${percentChange.toFixed(0)}%`;
+  }
+  
+  const Arrow = () => {
+    if (direction === "up") {
+      return (
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    }
+    return (
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
+  
+  return (
+    <span className={cn("inline-flex items-center gap-0.5 text-xs font-semibold", colorClass, className)}>
+      <Arrow />
+      {displayValue}
+    </span>
+  );
+}
