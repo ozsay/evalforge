@@ -12,6 +12,10 @@ import {
   Search,
   AlertTriangle,
   Wrench,
+  DollarSign,
+  Zap,
+  Clock,
+  Activity,
 } from "lucide-react";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
@@ -103,6 +107,36 @@ export function ResultsPage() {
       .map((id) => evalRuns.find((r) => r.id === id))
       .filter(Boolean) as EvalRun[];
   }, [selectedRuns, evalRuns]);
+
+  // Aggregate tracing data from completed runs
+  const tracingTotals = useMemo(() => {
+    const runsWithTracing = completedRuns.filter(r => r.llmTraceSummary);
+    if (runsWithTracing.length === 0) {
+      return null;
+    }
+
+    let totalCost = 0;
+    let totalTokens = 0;
+    let totalDuration = 0;
+    let totalSteps = 0;
+
+    runsWithTracing.forEach(run => {
+      if (run.llmTraceSummary) {
+        totalCost += run.llmTraceSummary.totalCostUsd;
+        totalTokens += run.llmTraceSummary.totalTokens.total;
+        totalDuration += run.llmTraceSummary.totalDurationMs;
+        totalSteps += run.llmTraceSummary.totalSteps;
+      }
+    });
+
+    return {
+      totalCost,
+      totalTokens,
+      totalDuration,
+      totalSteps,
+      runsWithTracing: runsWithTracing.length,
+    };
+  }, [completedRuns]);
 
   const toggleRunSelection = (runId: string) => {
     setSelectedRuns((prev) =>
@@ -252,6 +286,40 @@ export function ResultsPage() {
                 subValue="Passed / Failed"
               />
             </div>
+
+            {/* LLM Tracing Summary Cards */}
+            {tracingTotals && (
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <TracingSummaryCard
+                  icon={<DollarSign className="w-5 h-5" />}
+                  label="Total Cost"
+                  value={`$${tracingTotals.totalCost.toFixed(4)}`}
+                  subValue={`${tracingTotals.runsWithTracing} runs with tracing`}
+                  color="emerald"
+                />
+                <TracingSummaryCard
+                  icon={<Zap className="w-5 h-5" />}
+                  label="Total Tokens"
+                  value={formatTokenCount(tracingTotals.totalTokens)}
+                  subValue="Across all LLM calls"
+                  color="violet"
+                />
+                <TracingSummaryCard
+                  icon={<Clock className="w-5 h-5" />}
+                  label="LLM Duration"
+                  value={formatDuration(tracingTotals.totalDuration)}
+                  subValue="Total LLM processing time"
+                  color="amber"
+                />
+                <TracingSummaryCard
+                  icon={<Activity className="w-5 h-5" />}
+                  label="Total Steps"
+                  value={tracingTotals.totalSteps.toLocaleString()}
+                  subValue="LLM interactions"
+                  color="sky"
+                />
+              </div>
+            )}
 
             {/* Run List */}
             <div className="space-y-3">
@@ -403,6 +471,29 @@ export function ResultsPage() {
   );
 }
 
+// Helper functions for formatting
+function formatTokenCount(tokens: number): string {
+  if (tokens >= 1_000_000) {
+    return `${(tokens / 1_000_000).toFixed(2)}M`;
+  }
+  if (tokens >= 1_000) {
+    return `${(tokens / 1_000).toFixed(1)}K`;
+  }
+  return tokens.toLocaleString();
+}
+
+function formatDuration(ms: number): string {
+  if (ms >= 60_000) {
+    const minutes = Math.floor(ms / 60_000);
+    const seconds = Math.floor((ms % 60_000) / 1000);
+    return `${minutes}m ${seconds}s`;
+  }
+  if (ms >= 1_000) {
+    return `${(ms / 1_000).toFixed(1)}s`;
+  }
+  return `${ms}ms`;
+}
+
 // Summary Card
 function SummaryCard({
   label,
@@ -428,6 +519,45 @@ function SummaryCard({
           {value}
         </p>
         <p className="text-xs text-gray-400 mt-1">{subValue}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Tracing Summary Card with colored icon
+function TracingSummaryCard({
+  icon,
+  label,
+  value,
+  subValue,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  subValue: string;
+  color: "emerald" | "violet" | "amber" | "sky";
+}) {
+  const colorClasses = {
+    emerald: "bg-emerald-100 text-emerald-600",
+    violet: "bg-violet-100 text-violet-600",
+    amber: "bg-amber-100 text-amber-600",
+    sky: "bg-sky-100 text-sky-600",
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={cn("p-2 rounded-lg", colorClasses[color])}>
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-500 mb-0.5">{label}</p>
+            <p className="text-xl font-bold text-gray-900 truncate">{value}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{subValue}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -498,6 +628,20 @@ function RunCard({
 
           {run.status === "completed" && (
             <div className="flex items-center gap-4">
+              {/* LLM Tracing Badges */}
+              {run.llmTraceSummary && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md">
+                    <DollarSign className="w-3 h-3" />
+                    ${run.llmTraceSummary.totalCostUsd.toFixed(3)}
+                  </span>
+                  <span className="flex items-center gap-1 px-2 py-1 bg-violet-50 text-violet-700 rounded-md">
+                    <Zap className="w-3 h-3" />
+                    {formatTokenCount(run.llmTraceSummary.totalTokens.total)}
+                  </span>
+                </div>
+              )}
+
               {/* Mini Progress Bar */}
               <div className="w-24">
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -578,49 +722,7 @@ function RunCard({
               </h5>
               <div className="space-y-2">
                 {run.results.map((result) => (
-                  <div
-                    key={result.id}
-                    className="flex items-center justify-between p-3 bg-white rounded-lg border"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Badge variant="gray" size="sm">
-                        {result.modelConfig?.model || "N/A"}
-                      </Badge>
-                      {result.agentName && (
-                        <Badge variant="primary" size="sm" className="flex items-center gap-1">
-                          <Wrench className="w-3 h-3" />
-                          {result.agentName}
-                        </Badge>
-                      )}
-                      <span className="text-sm font-medium text-gray-900">
-                        {result.scenarioName}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-success-600">
-                          <CheckCircle2 className="w-4 h-4 inline mr-1" />
-                          {result.passed}
-                        </span>
-                        <span className="text-error-600">
-                          <XCircle className="w-4 h-4 inline mr-1" />
-                          {result.failed}
-                        </span>
-                      </div>
-                      <Badge
-                        variant={
-                          result.passRate >= 80
-                            ? "success"
-                            : result.passRate >= 50
-                            ? "warning"
-                            : "error"
-                        }
-                        size="sm"
-                      >
-                        {result.passRate.toFixed(0)}%
-                      </Badge>
-                    </div>
-                  </div>
+                  <ResultWithTracing key={result.id} result={result} />
                 ))}
               </div>
             </div>
@@ -628,6 +730,211 @@ function RunCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Result with expandable tracing
+function ResultWithTracing({ result }: { result: EvalRun["results"][0] }) {
+  const [showTracing, setShowTracing] = useState(false);
+
+  return (
+    <div className="bg-white rounded-lg border overflow-hidden">
+      <div
+        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
+        onClick={() => setShowTracing(!showTracing)}
+      >
+        <div className="flex items-center gap-3">
+          <button className="text-gray-400">
+            {showTracing ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+          <Badge variant="gray" size="sm">
+            {result.modelConfig?.model || "N/A"}
+          </Badge>
+          {result.agentName && (
+            <Badge variant="primary" size="sm" className="flex items-center gap-1">
+              <Wrench className="w-3 h-3" />
+              {result.agentName}
+            </Badge>
+          )}
+          <span className="text-sm font-medium text-gray-900">
+            {result.scenarioName}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Tracing mini-summary */}
+          {result.llmTrace && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />
+                ${result.llmTrace.summary.totalCostUsd.toFixed(4)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                {formatTokenCount(result.llmTrace.summary.totalTokens.total)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-success-600">
+              <CheckCircle2 className="w-4 h-4 inline mr-1" />
+              {result.passed}
+            </span>
+            <span className="text-error-600">
+              <XCircle className="w-4 h-4 inline mr-1" />
+              {result.failed}
+            </span>
+          </div>
+          <Badge
+            variant={
+              result.passRate >= 80
+                ? "success"
+                : result.passRate >= 50
+                ? "warning"
+                : "error"
+            }
+            size="sm"
+          >
+            {result.passRate.toFixed(0)}%
+          </Badge>
+        </div>
+      </div>
+
+      {/* Expanded Tracing Table */}
+      {showTracing && result.llmTrace && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="border-t border-gray-100"
+        >
+          <LLMTracingTable trace={result.llmTrace} />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// LLM Tracing Table Component
+function LLMTracingTable({ trace }: { trace: NonNullable<EvalRun["results"][0]["llmTrace"]> }) {
+  const stepTypeColors: Record<string, string> = {
+    text_generation: "bg-blue-100 text-blue-700",
+    tool_call: "bg-purple-100 text-purple-700",
+    tool_result: "bg-indigo-100 text-indigo-700",
+    analysis: "bg-emerald-100 text-emerald-700",
+    assertion_check: "bg-amber-100 text-amber-700",
+    embedding: "bg-pink-100 text-pink-700",
+    vision: "bg-cyan-100 text-cyan-700",
+  };
+
+  const stepTypeLabels: Record<string, string> = {
+    text_generation: "Text Gen",
+    tool_call: "Tool Call",
+    tool_result: "Tool Result",
+    analysis: "Analysis",
+    assertion_check: "Assertion",
+    embedding: "Embedding",
+    vision: "Vision",
+  };
+
+  return (
+    <div className="p-4 bg-gray-50">
+      {/* Summary Row */}
+      <div className="flex items-center gap-6 mb-4 p-3 bg-white rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-700">
+            {trace.summary.totalSteps} steps
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {formatDuration(trace.summary.totalDurationMs)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {formatTokenCount(trace.summary.totalTokens.total)} tokens
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            ${trace.summary.totalCostUsd.toFixed(4)}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1 text-xs text-gray-500">
+          Models: {trace.summary.modelsUsed.map(m => (
+            <Badge key={m} variant="gray" size="sm">{m}</Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Steps Table */}
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="text-left px-3 py-2 font-medium text-gray-600">#</th>
+              <th className="text-left px-3 py-2 font-medium text-gray-600">Type</th>
+              <th className="text-left px-3 py-2 font-medium text-gray-600">Model</th>
+              <th className="text-right px-3 py-2 font-medium text-gray-600">Tokens</th>
+              <th className="text-right px-3 py-2 font-medium text-gray-600">Duration</th>
+              <th className="text-right px-3 py-2 font-medium text-gray-600">Cost</th>
+              <th className="text-center px-3 py-2 font-medium text-gray-600">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {trace.steps.map((step) => (
+              <tr key={step.id} className="hover:bg-gray-50">
+                <td className="px-3 py-2 text-gray-500">{step.stepNumber}</td>
+                <td className="px-3 py-2">
+                  <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                    stepTypeColors[step.type] || "bg-gray-100 text-gray-700"
+                  )}>
+                    {stepTypeLabels[step.type] || step.type}
+                    {step.toolName && (
+                      <span className="ml-1 opacity-75">({step.toolName})</span>
+                    )}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-gray-600 font-mono text-xs">
+                  {step.model}
+                </td>
+                <td className="px-3 py-2 text-right text-gray-600">
+                  <span className="text-xs text-gray-400">
+                    {step.tokenUsage.prompt.toLocaleString()}↑
+                  </span>
+                  {" / "}
+                  <span className="text-xs text-gray-400">
+                    {step.tokenUsage.completion.toLocaleString()}↓
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right text-gray-600">
+                  {formatDuration(step.durationMs)}
+                </td>
+                <td className="px-3 py-2 text-right text-gray-600">
+                  ${step.costUsd.toFixed(5)}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {step.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-success-500 inline" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-error-500 inline" />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

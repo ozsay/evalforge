@@ -419,6 +419,8 @@ export interface AssertionResult {
   actual?: string;
   duration?: number; // ms
   details?: Record<string, unknown>;
+  /** LLM trace steps specific to this assertion check */
+  llmTraceSteps?: LLMTraceStep[];
 }
 
 // ==========================================
@@ -451,6 +453,119 @@ export interface TokenUsage {
   completion: number;
   total: number;
 }
+
+// ==========================================
+// LLM Tracing Types
+// ==========================================
+//
+// Comprehensive tracing for LLM interactions during evaluation.
+// Tracks cost, token usage, duration, and step-by-step execution.
+//
+// ==========================================
+
+/** Type of LLM interaction step */
+export type LLMStepType = 
+  | "text_generation"      // Standard text completion
+  | "tool_call"            // Function/tool invocation
+  | "tool_result"          // Response from tool execution
+  | "analysis"             // Analysis phase (e.g., grading reasoning)
+  | "assertion_check"      // Checking an assertion
+  | "embedding"            // Embedding generation
+  | "vision";              // Image analysis
+
+/** Single LLM interaction step in the trace */
+export interface LLMTraceStep {
+  id: string;
+  /** Step sequence number */
+  stepNumber: number;
+  /** Type of this step */
+  type: LLMStepType;
+  /** Model used for this step */
+  model: string;
+  /** Provider (openai, anthropic, etc.) */
+  provider: LLMProvider;
+  /** When this step started */
+  startedAt: string;
+  /** Step duration in milliseconds */
+  durationMs: number;
+  /** Token usage for this step */
+  tokenUsage: TokenUsage;
+  /** Estimated cost in USD for this step */
+  costUsd: number;
+  /** For tool calls: the tool name */
+  toolName?: string;
+  /** For tool calls: the tool arguments (JSON string) */
+  toolArguments?: string;
+  /** Truncated input/output for debugging */
+  inputPreview?: string;
+  outputPreview?: string;
+  /** Whether this step succeeded */
+  success: boolean;
+  /** Error message if failed */
+  error?: string;
+}
+
+/** Breakdown stats for a step type or model */
+export interface LLMBreakdownStats {
+  count: number;
+  durationMs: number;
+  tokens: number;
+  costUsd: number;
+}
+
+/** Aggregated tracing summary for a result or run */
+export interface LLMTraceSummary {
+  /** Total number of LLM calls */
+  totalSteps: number;
+  /** Total duration across all steps in ms */
+  totalDurationMs: number;
+  /** Total tokens used */
+  totalTokens: TokenUsage;
+  /** Total estimated cost in USD */
+  totalCostUsd: number;
+  /** Breakdown by step type */
+  stepTypeBreakdown: Partial<Record<LLMStepType, LLMBreakdownStats>>;
+  /** Breakdown by model */
+  modelBreakdown: Record<string, LLMBreakdownStats>;
+  /** Models used in this trace */
+  modelsUsed: string[];
+}
+
+/** Complete LLM trace for a result */
+export interface LLMTrace {
+  /** Unique trace ID */
+  id: string;
+  /** All steps in chronological order */
+  steps: LLMTraceStep[];
+  /** Aggregated summary */
+  summary: LLMTraceSummary;
+}
+
+/** Model pricing configuration per 1M tokens */
+export interface ModelPricing {
+  provider: LLMProvider;
+  model: string;
+  /** USD per 1M input tokens */
+  inputPer1M: number;
+  /** USD per 1M output tokens */
+  outputPer1M: number;
+}
+
+/** Default pricing table for cost estimation */
+export const MODEL_PRICING: ModelPricing[] = [
+  { provider: "anthropic", model: "claude-3-5-sonnet-20241022", inputPer1M: 3.0, outputPer1M: 15.0 },
+  { provider: "anthropic", model: "claude-3-opus", inputPer1M: 15.0, outputPer1M: 75.0 },
+  { provider: "anthropic", model: "claude-3-sonnet", inputPer1M: 3.0, outputPer1M: 15.0 },
+  { provider: "anthropic", model: "claude-3-haiku", inputPer1M: 0.25, outputPer1M: 1.25 },
+  { provider: "openai", model: "gpt-4-turbo", inputPer1M: 10.0, outputPer1M: 30.0 },
+  { provider: "openai", model: "gpt-4", inputPer1M: 30.0, outputPer1M: 60.0 },
+  { provider: "openai", model: "gpt-3.5-turbo", inputPer1M: 0.5, outputPer1M: 1.5 },
+  { provider: "google", model: "gemini-pro", inputPer1M: 0.5, outputPer1M: 1.5 },
+  { provider: "google", model: "gemini-ultra", inputPer1M: 5.0, outputPer1M: 15.0 },
+  { provider: "local", model: "llama-3", inputPer1M: 0, outputPer1M: 0 },
+  { provider: "local", model: "mistral-7b", inputPer1M: 0, outputPer1M: 0 },
+  { provider: "local", model: "codellama-34b", inputPer1M: 0, outputPer1M: 0 },
+];
 
 /**
  * @deprecated Use EvalRunConfig instead. This was for the old matrix testing
@@ -495,6 +610,8 @@ export interface EvalRunResult {
   mockFiles?: ExpectedFile[]; // Simulated generated files
   startedAt?: string;
   completedAt?: string;
+  /** LLM tracing information for this result */
+  llmTrace?: LLMTrace;
 }
 
 // ==========================================
@@ -620,6 +737,8 @@ export interface EvalRun {
   results: EvalRunResult[];
   aggregateMetrics: EvalMetrics;
   failureAnalyses?: FailureAnalysis[];
+  /** Aggregated LLM trace summary across all results */
+  llmTraceSummary?: LLMTraceSummary;
   startedAt: string;
   completedAt?: string;
 }

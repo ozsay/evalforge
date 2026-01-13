@@ -12,9 +12,235 @@ import type {
   Agent,
   ModelConfig,
   FailureAnalysis,
+  LLMTrace,
+  LLMTraceStep,
+  LLMTraceSummary,
+  LLMStepType,
+  LLMBreakdownStats,
+  TokenUsage,
+  LLMProvider,
 } from "@lib/types";
-import { BUILTIN_AGENTS } from "@lib/types";
+import { BUILTIN_AGENTS, MODEL_PRICING } from "@lib/types";
 import { generateId, generateFailureAnalysis } from "./shared";
+
+// ==========================================
+// LLM Trace Generation
+// ==========================================
+
+/**
+ * Get cost per token based on model
+ */
+function getModelPricing(model: string, provider: LLMProvider): { inputPer1M: number; outputPer1M: number } {
+  const pricing = MODEL_PRICING.find(p => p.model === model && p.provider === provider);
+  return pricing || { inputPer1M: 1.0, outputPer1M: 2.0 }; // Default fallback
+}
+
+/**
+ * Calculate cost for token usage
+ */
+function calculateCost(tokenUsage: TokenUsage, model: string, provider: LLMProvider): number {
+  const pricing = getModelPricing(model, provider);
+  const inputCost = (tokenUsage.prompt / 1_000_000) * pricing.inputPer1M;
+  const outputCost = (tokenUsage.completion / 1_000_000) * pricing.outputPer1M;
+  return inputCost + outputCost;
+}
+
+/**
+ * Generate a single LLM trace step
+ */
+function generateLLMTraceStep(
+  stepNumber: number,
+  type: LLMStepType,
+  model: string,
+  provider: LLMProvider,
+  startTime: Date
+): LLMTraceStep {
+  // Realistic token ranges based on step type
+  const tokenRanges: Record<LLMStepType, { promptMin: number; promptMax: number; completionMin: number; completionMax: number }> = {
+    text_generation: { promptMin: 500, promptMax: 2000, completionMin: 200, completionMax: 1500 },
+    tool_call: { promptMin: 300, promptMax: 800, completionMin: 50, completionMax: 200 },
+    tool_result: { promptMin: 100, promptMax: 500, completionMin: 100, completionMax: 800 },
+    analysis: { promptMin: 1000, promptMax: 3000, completionMin: 500, completionMax: 2000 },
+    assertion_check: { promptMin: 400, promptMax: 1200, completionMin: 100, completionMax: 500 },
+    embedding: { promptMin: 100, promptMax: 500, completionMin: 0, completionMax: 0 },
+    vision: { promptMin: 1000, promptMax: 5000, completionMin: 200, completionMax: 1000 },
+  };
+
+  const range = tokenRanges[type];
+  const promptTokens = Math.floor(Math.random() * (range.promptMax - range.promptMin)) + range.promptMin;
+  const completionTokens = Math.floor(Math.random() * (range.completionMax - range.completionMin)) + range.completionMin;
+  const tokenUsage: TokenUsage = {
+    prompt: promptTokens,
+    completion: completionTokens,
+    total: promptTokens + completionTokens,
+  };
+
+  // Duration based on token count (roughly 50-100 tokens per second)
+  const tokensPerSecond = Math.random() * 50 + 50;
+  const durationMs = Math.floor((tokenUsage.total / tokensPerSecond) * 1000);
+
+  const costUsd = calculateCost(tokenUsage, model, provider);
+
+  // Tool-specific fields
+  const toolNames = ["read_file", "write_file", "execute_command", "search_codebase", "run_tests", "analyze_output"];
+  const toolName = type === "tool_call" ? toolNames[Math.floor(Math.random() * toolNames.length)] : undefined;
+  const toolArguments = toolName ? JSON.stringify({ path: "/src/example.ts", content: "..." }) : undefined;
+
+  // Input/output previews
+  const inputPreviews: Record<LLMStepType, string> = {
+    text_generation: "Generate a React component that...",
+    tool_call: `Call ${toolName || "function"} with parameters...`,
+    tool_result: "Function returned: { success: true, ... }",
+    analysis: "Analyze the following code output and determine if...",
+    assertion_check: "Check if the file contains the expected content...",
+    embedding: "Create embedding for: component structure...",
+    vision: "Analyze the screenshot of the rendered UI...",
+  };
+
+  const outputPreviews: Record<LLMStepType, string> = {
+    text_generation: "Here is the React component implementation...",
+    tool_call: `{ "tool": "${toolName || "function"}", "args": {...} }`,
+    tool_result: "The operation completed successfully with...",
+    analysis: "Based on my analysis, the output shows...",
+    assertion_check: "PASS: The file contains the expected pattern...",
+    embedding: "[0.123, -0.456, 0.789, ...]",
+    vision: "The UI shows a properly rendered button with...",
+  };
+
+  const success = Math.random() > 0.05; // 95% success rate
+
+  return {
+    id: generateId(),
+    stepNumber,
+    type,
+    model,
+    provider,
+    startedAt: startTime.toISOString(),
+    durationMs,
+    tokenUsage,
+    costUsd,
+    toolName,
+    toolArguments,
+    inputPreview: inputPreviews[type],
+    outputPreview: outputPreviews[type],
+    success,
+    error: success ? undefined : "API rate limit exceeded",
+  };
+}
+
+/**
+ * Generate LLM trace summary from steps
+ */
+function generateLLMTraceSummary(steps: LLMTraceStep[]): LLMTraceSummary {
+  const totalTokens: TokenUsage = {
+    prompt: 0,
+    completion: 0,
+    total: 0,
+  };
+  let totalDurationMs = 0;
+  let totalCostUsd = 0;
+  const stepTypeBreakdown: Partial<Record<LLMStepType, LLMBreakdownStats>> = {};
+  const modelBreakdown: Record<string, LLMBreakdownStats> = {};
+  const modelsUsed = new Set<string>();
+
+  for (const step of steps) {
+    // Aggregate totals
+    totalTokens.prompt += step.tokenUsage.prompt;
+    totalTokens.completion += step.tokenUsage.completion;
+    totalTokens.total += step.tokenUsage.total;
+    totalDurationMs += step.durationMs;
+    totalCostUsd += step.costUsd;
+
+    modelsUsed.add(step.model);
+
+    // Step type breakdown
+    if (!stepTypeBreakdown[step.type]) {
+      stepTypeBreakdown[step.type] = { count: 0, durationMs: 0, tokens: 0, costUsd: 0 };
+    }
+    stepTypeBreakdown[step.type]!.count++;
+    stepTypeBreakdown[step.type]!.durationMs += step.durationMs;
+    stepTypeBreakdown[step.type]!.tokens += step.tokenUsage.total;
+    stepTypeBreakdown[step.type]!.costUsd += step.costUsd;
+
+    // Model breakdown
+    if (!modelBreakdown[step.model]) {
+      modelBreakdown[step.model] = { count: 0, durationMs: 0, tokens: 0, costUsd: 0 };
+    }
+    modelBreakdown[step.model].count++;
+    modelBreakdown[step.model].durationMs += step.durationMs;
+    modelBreakdown[step.model].tokens += step.tokenUsage.total;
+    modelBreakdown[step.model].costUsd += step.costUsd;
+  }
+
+  return {
+    totalSteps: steps.length,
+    totalDurationMs,
+    totalTokens,
+    totalCostUsd,
+    stepTypeBreakdown,
+    modelBreakdown,
+    modelsUsed: Array.from(modelsUsed),
+  };
+}
+
+/**
+ * Generate a complete LLM trace for a result
+ */
+function generateLLMTrace(model: ModelConfig, numAssertions: number): LLMTrace {
+  const steps: LLMTraceStep[] = [];
+  let currentTime = new Date();
+  let stepNumber = 1;
+
+  // Step types sequence for a typical evaluation
+  const stepSequence: LLMStepType[] = [
+    "text_generation",  // Initial analysis
+    "tool_call",        // Read files
+    "tool_result",      // File contents
+    "analysis",         // Process content
+  ];
+
+  // Add initial steps
+  for (const stepType of stepSequence) {
+    const step = generateLLMTraceStep(stepNumber++, stepType, model.model, model.provider, currentTime);
+    steps.push(step);
+    currentTime = new Date(currentTime.getTime() + step.durationMs);
+  }
+
+  // Add assertion check steps (one per assertion)
+  for (let i = 0; i < numAssertions; i++) {
+    const step = generateLLMTraceStep(stepNumber++, "assertion_check", model.model, model.provider, currentTime);
+    steps.push(step);
+    currentTime = new Date(currentTime.getTime() + step.durationMs);
+  }
+
+  // Occasionally add a tool call for test execution
+  if (Math.random() > 0.5) {
+    const toolStep = generateLLMTraceStep(stepNumber++, "tool_call", model.model, model.provider, currentTime);
+    steps.push(toolStep);
+    currentTime = new Date(currentTime.getTime() + toolStep.durationMs);
+    
+    const resultStep = generateLLMTraceStep(stepNumber++, "tool_result", model.model, model.provider, currentTime);
+    steps.push(resultStep);
+  }
+
+  // Final analysis
+  const finalStep = generateLLMTraceStep(stepNumber, "analysis", model.model, model.provider, currentTime);
+  steps.push(finalStep);
+
+  return {
+    id: generateId(),
+    steps,
+    summary: generateLLMTraceSummary(steps),
+  };
+}
+
+/**
+ * Aggregate multiple LLM traces into a single summary
+ */
+function aggregateLLMTraceSummaries(traces: LLMTrace[]): LLMTraceSummary {
+  const allSteps = traces.flatMap(t => t.steps);
+  return generateLLMTraceSummary(allSteps);
+}
 
 // Agent-specific pass rate modifiers
 const AGENT_PASS_RATE_MODIFIERS: Record<string, number> = {
@@ -129,6 +355,9 @@ export function generateEvalRuns(
       const totalDuration = assertionResults.reduce((sum, ar) => sum + (ar.duration || 0), 0);
       const passRate = totalPassed + totalFailed > 0 ? (totalPassed / (totalPassed + totalFailed)) * 100 : 0;
 
+      // Generate LLM trace for this result
+      const llmTrace = generateLLMTrace(model, assertionResults.length);
+
       results.push({
         id: generateId(),
         skillVersionId: skillVersion.id,
@@ -152,6 +381,7 @@ export function generateEvalRuns(
           avgDuration: totalDuration / Math.max(assertionResults.length, 1),
           totalDuration,
         },
+        llmTrace,
       });
 
       const runDate = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
@@ -160,6 +390,10 @@ export function generateEvalRuns(
       // Build run name including agent if used
       const agentSuffix = agent ? ` via ${agent.name}` : "";
       const runName = `${skillName} - ${model.model.split("-").slice(0, 2).join(" ")}${agentSuffix}`;
+
+      // Aggregate LLM traces from all results
+      const allTraces = results.filter(r => r.llmTrace).map(r => r.llmTrace!);
+      const llmTraceSummary = allTraces.length > 0 ? aggregateLLMTraceSummaries(allTraces) : undefined;
 
       runs.push({
         id: generateId(),
@@ -190,6 +424,7 @@ export function generateEvalRuns(
           totalDuration,
         },
         failureAnalyses: failureAnalyses.length > 0 ? failureAnalyses : undefined,
+        llmTraceSummary,
         startedAt: runDate.toISOString(),
         completedAt: new Date(runDate.getTime() + totalDuration + 5000).toISOString(),
       });
@@ -263,6 +498,9 @@ function generateAgentComparisonRuns(
     const passRate = assertionResults.length > 0 ? (passed / assertionResults.length) * 100 : 0;
     const totalDuration = assertionResults.reduce((sum, r) => sum + (r.duration || 0), 0);
 
+    // Generate LLM trace for this result
+    const llmTrace = generateLLMTrace(model, assertionResults.length);
+
     const results: EvalRunResult[] = [{
       id: generateId(),
       skillVersionId: skillVersion.id,
@@ -286,9 +524,14 @@ function generateAgentComparisonRuns(
         avgDuration: totalDuration / Math.max(assertionResults.length, 1),
         totalDuration,
       },
+      llmTrace,
     }];
 
     const runDate = new Date(now.getTime() - (1 + agentIndex) * 60 * 60 * 1000); // 1-3 hours ago
+
+    // Aggregate LLM traces
+    const allTraces = results.filter(r => r.llmTrace).map(r => r.llmTrace!);
+    const llmTraceSummary = allTraces.length > 0 ? aggregateLLMTraceSummaries(allTraces) : undefined;
 
     runs.push({
       id: generateId(),
@@ -318,6 +561,7 @@ function generateAgentComparisonRuns(
         avgDuration: totalDuration / Math.max(results.length, 1),
         totalDuration,
       },
+      llmTraceSummary,
       startedAt: runDate.toISOString(),
       completedAt: new Date(runDate.getTime() + totalDuration + 3000).toISOString(),
     });
