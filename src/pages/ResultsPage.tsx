@@ -25,7 +25,7 @@ import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
 import { FailureAnalysisPanel } from "@components/FailureAnalysis";
-import { useEvalRuns, useSkills, useAgents } from "@lib/store";
+import { useEvalRuns, useSkills, useAgents, useTargetGroups } from "@lib/store";
 import type { EvalRun } from "@lib/types";
 import { cn, formatRelativeTime } from "@lib/utils";
 
@@ -132,12 +132,6 @@ export function ResultsPage() {
     };
   }, [trendData]);
 
-  // Comparison data for selected runs
-  const comparisonData = useMemo(() => {
-    return selectedRuns
-      .map((id) => evalRuns.find((r) => r.id === id))
-      .filter(Boolean) as EvalRun[];
-  }, [selectedRuns, evalRuns]);
 
   // Aggregate tracing data from completed runs
   const tracingTotals = useMemo(() => {
@@ -384,18 +378,7 @@ export function ResultsPage() {
 
           {/* Heatmap Tab */}
           <TabsContent value="heatmap" className="mt-6">
-            {comparisonData.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">
-                  Select runs to compare in the Overview tab
-                </p>
-                <p className="text-sm text-gray-400">
-                  You can select up to 5 runs for comparison
-                </p>
-              </div>
-            ) : (
-              <ComparisonHeatmap runs={comparisonData} />
-            )}
+            <TargetGroupComparison runs={completedRuns} skills={skills} />
           </TabsContent>
 
           {/* Trends Tab */}
@@ -1377,160 +1360,362 @@ function FailureAnalysisTab({ runs }: { runs: EvalRun[] }) {
   );
 }
 
-// Comparison Heatmap
-function ComparisonHeatmap({ runs }: { runs: EvalRun[] }) {
-  // Build matrix data
-  // Rows = scenarios, Columns = runs
-  const scenarios = new Map<string, string>();
-  runs.forEach((run) => {
-    run.results.forEach((result) => {
-      scenarios.set(result.scenarioId, result.scenarioName);
+// Target Group Comparison - Compare skills/models within a target group
+function TargetGroupComparison({ 
+  runs, 
+  skills 
+}: { 
+  runs: EvalRun[];
+  skills: { id: string; name: string }[];
+}) {
+  const targetGroups = useTargetGroups();
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [selectedMetric, setSelectedMetric] = useState<"passRate" | "cost" | "duration">("passRate");
+
+  // Get groups that have multiple targets (useful for comparison)
+  const comparableGroups = targetGroups.filter(g => g.targets.length > 1);
+
+  // Get selected group
+  const selectedGroup = targetGroups.find(g => g.id === selectedGroupId);
+
+  // Get skill IDs in the selected group
+  const skillIdsInGroup = useMemo(() => {
+    if (!selectedGroup) return [];
+    return selectedGroup.targets
+      .filter(t => t.type === "agent_skill" && t.skillId)
+      .map(t => t.skillId!);
+  }, [selectedGroup]);
+
+  // Get the latest run for each skill in the group
+  const latestRunsPerSkill = useMemo(() => {
+    const result: Record<string, EvalRun> = {};
+    skillIdsInGroup.forEach(skillId => {
+      const runsForSkill = runs
+        .filter(r => r.skillId === skillId)
+        .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+      if (runsForSkill.length > 0) {
+        result[skillId] = runsForSkill[0];
+      }
     });
-  });
+    return result;
+  }, [runs, skillIdsInGroup]);
 
-  const scenarioIds = Array.from(scenarios.keys());
-
-  // Collect unique agents used
-  const agentsUsed = useMemo(() => {
-    const agentNames = new Set<string>();
-    runs.forEach((run) => {
-      run.results.forEach((result) => {
-        if (result.agentName) {
-          agentNames.add(result.agentName);
-        }
+  // Get all scenarios that have runs across skills
+  const scenariosWithRuns = useMemo(() => {
+    const scenarioMap = new Map<string, { id: string; name: string; runs: Record<string, EvalRun> }>();
+    
+    skillIdsInGroup.forEach(skillId => {
+      const skillRuns = runs.filter(r => r.skillId === skillId);
+      skillRuns.forEach(run => {
+        run.results.forEach(result => {
+          if (!scenarioMap.has(result.scenarioId)) {
+            scenarioMap.set(result.scenarioId, {
+              id: result.scenarioId,
+              name: result.scenarioName,
+              runs: {},
+            });
+          }
+          // Only keep the latest run for each skill-scenario combo
+          const existing = scenarioMap.get(result.scenarioId)!;
+          const existingRun = existing.runs[skillId];
+          if (!existingRun || new Date(run.startedAt) > new Date(existingRun.startedAt)) {
+            existing.runs[skillId] = run;
+          }
+        });
       });
     });
-    return Array.from(agentNames);
-  }, [runs]);
+    
+    return Array.from(scenarioMap.values());
+  }, [runs, skillIdsInGroup]);
 
-  const getPassRate = (run: EvalRun, scenarioId: string) => {
-    const result = run.results.find((r) => r.scenarioId === scenarioId);
-    return result?.passRate ?? null;
+  // Get metric value from run
+  const getMetricValue = (run: EvalRun | undefined, metric: typeof selectedMetric) => {
+    if (!run) return null;
+    switch (metric) {
+      case "passRate": return run.aggregateMetrics.passRate;
+      case "cost": return run.llmTraceSummary?.totalCostUsd ?? 0;
+      case "duration": return run.aggregateMetrics.totalDuration / 1000;
+    }
   };
 
-  const getCellColor = (passRate: number | null) => {
-    if (passRate === null) return "bg-gray-100";
-    if (passRate >= 80) return "bg-success-400";
-    if (passRate >= 60) return "bg-success-200";
-    if (passRate >= 40) return "bg-warning-200";
-    if (passRate >= 20) return "bg-warning-400";
-    return "bg-error-400";
+  // Format metric value
+  const formatMetric = (value: number | null, metric: typeof selectedMetric) => {
+    if (value === null) return "—";
+    switch (metric) {
+      case "passRate": return `${value.toFixed(0)}%`;
+      case "cost": return `$${value.toFixed(3)}`;
+      case "duration": return `${value.toFixed(1)}s`;
+    }
   };
+
+  // Get cell color based on metric and value
+  const getCellColor = (value: number | null, metric: typeof selectedMetric, allValues: number[]) => {
+    if (value === null || allValues.length === 0) return "bg-gray-100";
+    
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const range = max - min;
+    
+    if (range === 0) return "bg-gray-100";
+    
+    // For pass rate: higher is better (green)
+    // For cost/duration: lower is better (green), invert the scale
+    const normalized = metric === "passRate" 
+      ? (value - min) / range 
+      : 1 - (value - min) / range;
+    
+    if (normalized >= 0.8) return "bg-success-400";
+    if (normalized >= 0.6) return "bg-success-200";
+    if (normalized >= 0.4) return "bg-warning-200";
+    if (normalized >= 0.2) return "bg-warning-300";
+    return "bg-error-300";
+  };
+
+  // Check if a value is the best in its row
+  const isBestInRow = (value: number | null, allValues: number[], metric: typeof selectedMetric) => {
+    if (value === null || allValues.length === 0) return false;
+    if (metric === "passRate") {
+      return value === Math.max(...allValues);
+    } else {
+      return value === Math.min(...allValues.filter(v => v > 0));
+    }
+  };
+
+  if (comparableGroups.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <p className="text-gray-500 mb-2">No comparable target groups</p>
+        <p className="text-sm text-gray-400">
+          Create a target group with multiple skills/models to compare them
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="overflow-x-auto">
-      {/* Agents summary if multiple agents used */}
-      {agentsUsed.length > 1 && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-blue-700">
-            <Wrench className="w-4 h-4" />
-            <span className="font-medium">Agents compared:</span>
-            {agentsUsed.map((agentName) => (
-              <Badge key={agentName} variant="primary" size="sm">
-                {agentName}
-              </Badge>
-            ))}
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 max-w-xs">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Target Group
+          </label>
+          <Select
+            value={selectedGroupId}
+            onChange={(e) => setSelectedGroupId(e.target.value)}
+            options={[
+              { value: "", label: "Select a target group..." },
+              ...comparableGroups.map(g => ({
+                value: g.id,
+                label: `${g.name} (${g.targets.length} targets)`,
+              })),
+            ]}
+          />
+        </div>
+        
+        {selectedGroupId && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Metric
+            </label>
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+              {[
+                { value: "passRate", label: "Pass Rate" },
+                { value: "cost", label: "Cost" },
+                { value: "duration", label: "Duration" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setSelectedMetric(option.value as typeof selectedMetric)}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium transition-colors",
+                    selectedMetric === option.value
+                      ? "bg-primary-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Comparison Table */}
+      {selectedGroup && skillIdsInGroup.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                {selectedGroup.name} - {selectedMetric === "passRate" ? "Pass Rate" : selectedMetric === "cost" ? "Cost" : "Duration"} Comparison
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                Comparing {skillIdsInGroup.length} skills across {scenariosWithRuns.length} scenario(s)
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {scenariosWithRuns.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No evaluation runs found for skills in this group
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-3 text-sm font-medium text-gray-700">
+                        Scenario
+                      </th>
+                      {skillIdsInGroup.map(skillId => {
+                        const skill = skills.find(s => s.id === skillId);
+                        const latestRun = latestRunsPerSkill[skillId];
+                        return (
+                          <th key={skillId} className="text-center p-3 text-sm font-medium text-gray-700 min-w-[140px]">
+                            <div className="font-semibold">{skill?.name || skillId}</div>
+                            {latestRun && (
+                              <div className="text-xs font-normal text-gray-400 mt-1">
+                                {latestRun.results[0]?.modelConfig?.model || "—"}
+                              </div>
+                            )}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scenariosWithRuns.map((scenario) => {
+                      const rowValues = skillIdsInGroup
+                        .map(skillId => getMetricValue(scenario.runs[skillId], selectedMetric))
+                        .filter((v): v is number => v !== null);
+                      
+                      return (
+                        <tr key={scenario.id} className="border-b border-gray-100">
+                          <td className="p-3 text-sm text-gray-900">
+                            {scenario.name}
+                          </td>
+                          {skillIdsInGroup.map(skillId => {
+                            const run = scenario.runs[skillId];
+                            const value = getMetricValue(run, selectedMetric);
+                            const isBest = isBestInRow(value, rowValues, selectedMetric);
+                            
+                            return (
+                              <td key={skillId} className="p-2">
+                                <div
+                                  className={cn(
+                                    "flex flex-col items-center justify-center h-16 rounded-lg text-sm font-medium relative",
+                                    getCellColor(value, selectedMetric, rowValues)
+                                  )}
+                                >
+                                  <span className="text-lg font-bold">
+                                    {formatMetric(value, selectedMetric)}
+                                  </span>
+                                  {isBest && value !== null && (
+                                    <span className="text-[10px] text-success-700 font-semibold mt-0.5">
+                                      ★ Best
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  {/* Summary Row */}
+                  <tfoot>
+                    <tr className="bg-gray-50 border-t-2 border-gray-200">
+                      <td className="p-3 text-sm font-semibold text-gray-900">
+                        Average
+                      </td>
+                      {skillIdsInGroup.map(skillId => {
+                        const skillRuns = Object.values(
+                          scenariosWithRuns.reduce((acc, s) => {
+                            if (s.runs[skillId]) acc[s.runs[skillId].id] = s.runs[skillId];
+                            return acc;
+                          }, {} as Record<string, EvalRun>)
+                        );
+                        
+                        const values = skillRuns
+                          .map(r => getMetricValue(r, selectedMetric))
+                          .filter((v): v is number => v !== null);
+                        
+                        const avg = values.length > 0 
+                          ? values.reduce((a, b) => a + b, 0) / values.length 
+                          : null;
+                        
+                        const allAvgs = skillIdsInGroup.map(sid => {
+                          const sRuns = Object.values(
+                            scenariosWithRuns.reduce((acc, s) => {
+                              if (s.runs[sid]) acc[s.runs[sid].id] = s.runs[sid];
+                              return acc;
+                            }, {} as Record<string, EvalRun>)
+                          );
+                          const vs = sRuns.map(r => getMetricValue(r, selectedMetric)).filter((v): v is number => v !== null);
+                          return vs.length > 0 ? vs.reduce((a, b) => a + b, 0) / vs.length : null;
+                        }).filter((v): v is number => v !== null);
+                        
+                        const isBest = isBestInRow(avg, allAvgs, selectedMetric);
+                        
+                        return (
+                          <td key={skillId} className="p-2">
+                            <div
+                              className={cn(
+                                "flex flex-col items-center justify-center h-16 rounded-lg text-sm font-bold",
+                                getCellColor(avg, selectedMetric, allAvgs)
+                              )}
+                            >
+                              <span className="text-lg">
+                                {formatMetric(avg, selectedMetric)}
+                              </span>
+                              {isBest && avg !== null && (
+                                <span className="text-[10px] text-success-700 font-semibold mt-0.5">
+                                  ★ Best
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Legend */}
+      {selectedGroup && scenariosWithRuns.length > 0 && (
+        <div className="flex items-center justify-center gap-6 text-sm">
+          <span className="text-gray-500">
+            {selectedMetric === "passRate" ? "Higher is better" : "Lower is better"}
+          </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-error-300 rounded-sm" />
+              <span className="text-xs text-gray-600">Worst</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-warning-300 rounded-sm" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-warning-200 rounded-sm" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-success-200 rounded-sm" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 bg-success-400 rounded-sm" />
+              <span className="text-xs text-gray-600">Best</span>
+            </div>
           </div>
         </div>
       )}
-      
-      <table className="w-full">
-        <thead>
-          <tr>
-            <th className="text-left p-3 text-sm font-medium text-gray-700">
-              Scenario
-            </th>
-            {runs.map((run) => (
-              <th
-                key={run.id}
-                className="text-center p-3 text-sm font-medium text-gray-700 min-w-[120px]"
-              >
-                <div>{run.name}</div>
-                <div className="text-xs font-normal text-gray-400">
-                  {run.results[0]?.modelConfig?.model || "N/A"}
-                </div>
-                {run.results[0]?.agentName && (
-                  <div className="text-xs font-normal text-primary-500 mt-1">
-                    via {run.results[0]?.agentName}
-                  </div>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {scenarioIds.map((scenarioId) => (
-            <tr key={scenarioId} className="border-t">
-              <td className="p-3 text-sm text-gray-900">
-                {scenarios.get(scenarioId)}
-              </td>
-              {runs.map((run) => {
-                const passRate = getPassRate(run, scenarioId);
-                return (
-                  <td key={`${run.id}-${scenarioId}`} className="p-2">
-                    <div
-                      className={cn(
-                        "flex items-center justify-center h-12 rounded-lg text-sm font-medium",
-                        getCellColor(passRate),
-                        passRate !== null && passRate < 50
-                          ? "text-white"
-                          : "text-gray-900"
-                      )}
-                    >
-                      {passRate !== null ? `${passRate.toFixed(0)}%` : "—"}
-                    </div>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-          {/* Aggregate Row */}
-          <tr className="border-t-2 border-gray-300 bg-gray-50">
-            <td className="p-3 text-sm font-semibold text-gray-900">
-              Overall
-            </td>
-            {runs.map((run) => (
-              <td key={run.id} className="p-2">
-                <div
-                  className={cn(
-                    "flex items-center justify-center h-12 rounded-lg text-sm font-bold",
-                    getCellColor(run.aggregateMetrics.passRate),
-                    run.aggregateMetrics.passRate < 50
-                      ? "text-white"
-                      : "text-gray-900"
-                  )}
-                >
-                  {run.aggregateMetrics.passRate.toFixed(1)}%
-                </div>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Legend */}
-      <div className="mt-6 flex items-center justify-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-error-400 rounded-sm" />
-          <span className="text-xs text-gray-600">0-20%</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-warning-400 rounded-sm" />
-          <span className="text-xs text-gray-600">20-40%</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-warning-200 rounded-sm" />
-          <span className="text-xs text-gray-600">40-60%</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-success-200 rounded-sm" />
-          <span className="text-xs text-gray-600">60-80%</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-success-400 rounded-sm" />
-          <span className="text-xs text-gray-600">80-100%</span>
-        </div>
-      </div>
     </div>
   );
 }
