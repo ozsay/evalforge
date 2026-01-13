@@ -402,7 +402,7 @@ export function ResultsPage() {
                               border: "1px solid #E5E7EB",
                               borderRadius: "8px",
                             }}
-                            formatter={(value: number) => [`${value.toFixed(1)}%`, "Pass Rate"]}
+                            formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Pass Rate"]}
                           />
                           <Area
                             type="monotone"

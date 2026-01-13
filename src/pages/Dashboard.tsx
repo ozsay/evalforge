@@ -298,7 +298,7 @@ export function Dashboard() {
                               borderRadius: "8px",
                               fontSize: "12px",
                             }}
-                            formatter={(v: number) => [`${v.toFixed(1)}%`, "Pass Rate"]}
+                            formatter={(v) => [`${Number(v ?? 0).toFixed(1)}%`, "Pass Rate"]}
                           />
                           <Line
                             type="monotone"
