@@ -25,6 +25,7 @@ import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
+import { useTenant } from "@lib/context";
 import { useStore, useSkills } from "@lib/store";
 import type { Skill, SkillSyncSource, SkillSyncSourceType } from "@lib/types";
 import { parseSkillMd, validateSkillMd, extractSkillContent } from "@lib/utils/skillParser";
@@ -70,6 +71,7 @@ Show concrete examples of using this skill.
 `;
 
 export function SkillsPage() {
+  const { projectId } = useTenant();
   const skills = useSkills();
   const { addSkill, updateSkill, deleteSkill, duplicateSkill } = useStore();
 
@@ -166,6 +168,7 @@ export function SkillsPage() {
       });
     } else {
       addSkill({
+        projectId,
         name,
         description,
         skillMd,

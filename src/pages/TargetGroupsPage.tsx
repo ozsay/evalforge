@@ -25,6 +25,7 @@ import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
+import { useTenant } from "@lib/context";
 import {
   useStore,
   useTargetGroups,
@@ -40,6 +41,8 @@ import type {
   PromptAgentConfig,
   MCPServerConfig,
   LLMProvider,
+  Skill,
+  Agent,
 } from "@lib/types";
 import { AVAILABLE_MODELS } from "@lib/types";
 import { generateId, formatRelativeTime, cn } from "@lib/utils";
@@ -88,8 +91,8 @@ const TARGET_TYPES: {
   },
 ];
 
-// Default form data
-const defaultFormData: Omit<CreateTargetGroupInput, "targets"> = {
+// Default form data - projectId is added at submit time
+const defaultFormData = {
   name: "",
   description: "",
 };
@@ -109,6 +112,7 @@ const defaultPromptAgentConfig: PromptAgentConfig = {
 
 export function TargetGroupsPage() {
   const navigate = useNavigate();
+  const { projectId } = useTenant();
   const targetGroups = useTargetGroups();
   const skills = useSkills();
   const agents = useAgents();
@@ -158,6 +162,7 @@ export function TargetGroupsPage() {
     if (!formData.name) return;
 
     const input: CreateTargetGroupInput = {
+      projectId,
       ...formData,
       targets,
     };
@@ -347,8 +352,8 @@ export function TargetGroupsPage() {
 // Target Group Card Component
 interface TargetGroupCardProps {
   group: TargetGroup;
-  skills: ReturnType<typeof useSkills>;
-  agents: ReturnType<typeof useAgents>;
+  skills: Skill[];
+  agents: Agent[];
   isExpanded: boolean;
   onToggle: () => void;
   onEdit: () => void;
@@ -551,8 +556,8 @@ function TargetGroupCard({
 // Target Editor Component
 interface TargetEditorProps {
   target: Target;
-  skills: ReturnType<typeof useSkills>;
-  agents: ReturnType<typeof useAgents>;
+  skills: Skill[];
+  agents: Agent[];
   onChange: (updates: Partial<Target>) => void;
   onRemove: () => void;
 }

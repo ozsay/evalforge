@@ -30,6 +30,7 @@ import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
+import { useTenant } from "@lib/context";
 import { useStore, useTestScenarios, useTestSuites, useTargetGroups } from "@lib/store";
 import type {
   TestScenario,
@@ -111,6 +112,7 @@ export function TestScenariosPage() {
   const suiteIdFilter = searchParams.get("suiteId");
   const targetGroupIdFilter = searchParams.get("targetGroupId");
 
+  const { projectId } = useTenant();
   const allScenarios = useTestScenarios();
   const testSuites = useTestSuites();
   const targetGroups = useTargetGroups();
@@ -227,6 +229,7 @@ export function TestScenariosPage() {
     if (!formData.name || !formData.triggerPrompt) return;
 
     const scenarioInput: CreateTestScenarioInput = {
+      projectId,
       ...formData,
       targetGroupId: formData.targetGroupId || undefined, // Don't send empty string
       expectedFiles,

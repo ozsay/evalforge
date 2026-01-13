@@ -5,6 +5,7 @@
 
 import { generateId } from "@lib/utils";
 import type {
+  Project,
   Skill,
   SkillVersion,
   SkillSyncSource,
@@ -24,11 +25,37 @@ import type {
 import { BUILTIN_AGENTS, BUILTIN_TOOLS } from "@lib/types";
 
 // ==========================================
+// Demo Projects (Tenants)
+// ==========================================
+
+const DEMO_PROJECTS: Project[] = [
+  {
+    id: "proj-wix-dashboard",
+    name: "Wix Dashboard",
+    description: "Evaluation project for Wix Dashboard development agents and skills",
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "proj-react-components",
+    name: "React Components",
+    description: "Testing React component generation and UI development skills",
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Default project ID for demo data
+const WIX_PROJECT_ID = "proj-wix-dashboard";
+const REACT_PROJECT_ID = "proj-react-components";
+
+// ==========================================
 // Demo Skills
 // ==========================================
 
 function createSkill(
   id: string,
+  projectId: string,
   name: string,
   description: string,
   skillMd: string,
@@ -38,6 +65,7 @@ function createSkill(
   const now = new Date();
   return {
     id,
+    projectId,
     name,
     description,
     skillMd,
@@ -56,6 +84,7 @@ function createSkill(
 const DEMO_SKILLS: Skill[] = [
   createSkill(
     "skill-react-component",
+    REACT_PROJECT_ID,
     "React Component Generator",
     "Creates React components with TypeScript, tests, and Storybook stories",
     `---
@@ -120,6 +149,7 @@ src/components/{ComponentName}/
   ),
   createSkill(
     "skill-api-endpoint",
+    REACT_PROJECT_ID,
     "REST API Endpoint Builder",
     "Creates Express/Fastify API endpoints with validation and error handling",
     `---
@@ -144,6 +174,7 @@ Generate robust API endpoints with built-in validation, error handling, and docu
   ),
   createSkill(
     "skill-database-schema",
+    REACT_PROJECT_ID,
     "Database Schema Designer",
     "Designs and generates database schemas with migrations",
     `---
@@ -168,6 +199,7 @@ Design comprehensive database schemas with automatic migration generation.
   ),
   createSkill(
     "skill-unit-tests",
+    REACT_PROJECT_ID,
     "Unit Test Generator",
     "Generates comprehensive unit tests for existing code",
     `---
@@ -192,6 +224,7 @@ Automatically generate comprehensive unit tests for your codebase.
   ),
   createSkill(
     "skill-auth-flow",
+    REACT_PROJECT_ID,
     "Authentication Flow Builder",
     "Creates complete authentication systems with OAuth and JWT",
     `---
@@ -220,6 +253,7 @@ Build secure authentication systems with multiple provider support.
   // ==========================================
   createSkill(
     "skill-wix-dashboard-basic",
+    WIX_PROJECT_ID,
     "Wix Dashboard Page - Basic",
     "Creates basic Wix CLI dashboard pages with standard layouts and widgets",
     `---
@@ -282,6 +316,7 @@ src/dashboard/pages/{PageName}/
   ),
   createSkill(
     "skill-wix-dashboard-advanced",
+    WIX_PROJECT_ID,
     "Wix Dashboard Page - Advanced",
     "Creates Wix CLI dashboard pages with with direct instructions how to handle data fetching, state management, and complex interactions",
     `---
@@ -348,6 +383,7 @@ src/dashboard/pages/{PageName}/
   // ==========================================
   createSkill(
     "skill-wix-backend-http",
+    WIX_PROJECT_ID,
     "Wix Backend - HTTP Functions",
     "Creates Wix HTTP Functions for backend API endpoints",
     `---
@@ -413,6 +449,7 @@ backend/
   ),
   createSkill(
     "skill-wix-backend-velo",
+    WIX_PROJECT_ID,
     "Wix Backend - Velo Backend",
     "Creates Velo backend modules with data collections and scheduled jobs",
     `---
@@ -474,6 +511,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   // Target Group-linked scenarios
   {
     id: "scenario-react-button",
+    projectId: REACT_PROJECT_ID,
     targetGroupId: "tg-react-development",
     suiteIds: ["suite-ui-components"],
     name: "Create Button Component",
@@ -494,6 +532,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-react-modal",
+    projectId: REACT_PROJECT_ID,
     targetGroupId: "tg-react-development",
     suiteIds: ["suite-ui-components"],
     name: "Create Modal Component",
@@ -510,6 +549,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-api-crud",
+    projectId: REACT_PROJECT_ID,
     targetGroupId: "tg-api-testing",
     suiteIds: ["suite-api-patterns"],
     name: "Create CRUD Endpoints",
@@ -529,6 +569,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-db-ecommerce",
+    projectId: REACT_PROJECT_ID,
     targetGroupId: "tg-full-stack",
     name: "E-commerce Schema",
     description: "Test creating a complete e-commerce schema",
@@ -544,6 +585,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-test-utils",
+    projectId: REACT_PROJECT_ID,
     // Standalone scenario (no target group)
     name: "Generate Utility Tests",
     description: "Test generating unit tests for utility functions",
@@ -559,6 +601,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-auth-oauth",
+    projectId: REACT_PROJECT_ID,
     targetGroupId: "tg-full-stack",
     suiteIds: ["suite-auth-patterns"],
     name: "OAuth Google Integration",
@@ -576,6 +619,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   // Suite-only scenarios (no target group assigned)
   {
     id: "scenario-wix-dashboard-stats",
+    projectId: WIX_PROJECT_ID,
     targetGroupId: "tg-wix-dashboard",
     suiteIds: ["suite-wix-dashboard"],
     name: "Wix Dashboard Stats Widget",
@@ -595,6 +639,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-wix-dashboard-settings",
+    projectId: WIX_PROJECT_ID,
     suiteIds: ["suite-wix-dashboard"],
     name: "Wix Dashboard Settings Page",
     description: "Create a settings configuration page for Wix app",
@@ -612,6 +657,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-wix-dashboard-table",
+    projectId: WIX_PROJECT_ID,
     suiteIds: ["suite-wix-dashboard"],
     name: "Wix Dashboard Data Table",
     description: "Create a paginated data table for Wix dashboard",
@@ -630,6 +676,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   // Standalone scenarios (no skill or suite)
   {
     id: "scenario-standalone-dockerfile",
+    projectId: REACT_PROJECT_ID,
     name: "Generate Dockerfile",
     description: "Create optimized Dockerfile for Node.js app",
     triggerPrompt: "Create a multi-stage Dockerfile for a Node.js application with production optimizations.",
@@ -644,6 +691,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-standalone-cicd",
+    projectId: REACT_PROJECT_ID,
     name: "GitHub Actions Workflow",
     description: "Create CI/CD pipeline with GitHub Actions",
     triggerPrompt: "Create a GitHub Actions workflow for testing, building, and deploying a Node.js app.",
@@ -657,6 +705,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
   },
   {
     id: "scenario-standalone-readme",
+    projectId: REACT_PROJECT_ID,
     name: "Generate README",
     description: "Create comprehensive project README",
     triggerPrompt: "Generate a comprehensive README.md with installation, usage, API docs, and contribution guidelines.",
@@ -678,6 +727,7 @@ const DEMO_SCENARIOS: TestScenario[] = [
 const DEMO_SUITES: TestSuite[] = [
   {
     id: "suite-wix-dashboard",
+    projectId: WIX_PROJECT_ID,
     name: "Wix CLI Dashboard Pages",
     description: "Test suite for creating Wix CLI dashboard pages with various widgets and layouts",
     scenarioIds: ["scenario-wix-dashboard-stats", "scenario-wix-dashboard-settings", "scenario-wix-dashboard-table"],
@@ -687,6 +737,7 @@ const DEMO_SUITES: TestSuite[] = [
   },
   {
     id: "suite-ui-components",
+    projectId: REACT_PROJECT_ID,
     name: "UI Component Generation",
     description: "Test suite for generating reusable UI components with proper accessibility and testing",
     scenarioIds: ["scenario-react-button", "scenario-react-modal"],
@@ -696,6 +747,7 @@ const DEMO_SUITES: TestSuite[] = [
   },
   {
     id: "suite-api-patterns",
+    projectId: REACT_PROJECT_ID,
     name: "API Design Patterns",
     description: "Test suite for validating common API design patterns and best practices",
     scenarioIds: ["scenario-api-crud"],
@@ -705,6 +757,7 @@ const DEMO_SUITES: TestSuite[] = [
   },
   {
     id: "suite-auth-patterns",
+    projectId: REACT_PROJECT_ID,
     name: "Authentication Patterns",
     description: "Test suite for implementing secure authentication flows",
     scenarioIds: ["scenario-auth-oauth"],
@@ -714,6 +767,7 @@ const DEMO_SUITES: TestSuite[] = [
   },
   {
     id: "suite-full-stack",
+    projectId: REACT_PROJECT_ID,
     name: "Full Stack Application",
     description: "End-to-end test suite covering frontend, API, database, and auth components",
     scenarioIds: ["scenario-react-button", "scenario-api-crud", "scenario-db-ecommerce", "scenario-auth-oauth"],
@@ -915,6 +969,7 @@ function generateEvalRuns(): EvalRun[] {
 
       runs.push({
         id: generateId(),
+        projectId: skill.projectId,
         name: runName,
         skillId: skill.id,
         skillName: skill.name,
@@ -1016,6 +1071,7 @@ function generateAgentComparisonRuns(): EvalRun[] {
 
     runs.push({
       id: generateId(),
+      projectId: skill.projectId,
       name: `Agent Comparison: ${agent.name}`,
       skillId: skill.id,
       skillName: skill.name,
@@ -1159,6 +1215,7 @@ const DEMO_AGENTS: Agent[] = [
 const DEMO_TARGET_GROUPS: TargetGroup[] = [
   {
     id: "tg-react-development",
+    projectId: REACT_PROJECT_ID,
     name: "React Development",
     description: "Targets for React component development and testing",
     targets: [
@@ -1183,6 +1240,7 @@ const DEMO_TARGET_GROUPS: TargetGroup[] = [
   },
   {
     id: "tg-api-testing",
+    projectId: REACT_PROJECT_ID,
     name: "API Testing Suite",
     description: "Targets for API endpoint testing with custom prompt agents",
     targets: [
@@ -1230,6 +1288,7 @@ When reviewing code, focus on:
   },
   {
     id: "tg-full-stack",
+    projectId: REACT_PROJECT_ID,
     name: "Full Stack Evaluation",
     description: "Comprehensive targets for full-stack application testing",
     targets: [
@@ -1259,6 +1318,7 @@ When reviewing code, focus on:
   },
   {
     id: "tg-wix-dashboard",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Dashboard Components",
     description: "Targets for Wix CLI dashboard page development",
     targets: [
@@ -1314,6 +1374,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-dashboard-page",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Dashboard Page Development",
     description: "All variants of Dashboard page coding skills for comprehensive evaluation",
     targets: [
@@ -1338,6 +1399,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-backend",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Backend Development",
     description: "All variants of Backend coding skills for HTTP Functions and Velo development",
     targets: [
@@ -1361,6 +1423,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-app-builder",
+    projectId: WIX_PROJECT_ID,
     name: "Wix App Builder",
     description: "Wix App Builder coding agent for building Wix applications",
     targets: [
@@ -1379,6 +1442,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-vibe",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Vibe",
     description: "Wix Vibe AI agent for site and component building",
     targets: [
@@ -1397,6 +1461,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-claude-coder",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Claude Coder",
     description: "Claude CLI with Wix MCP capabilities for full platform integration",
     targets: [
@@ -1415,6 +1480,7 @@ Follow Wix CLI best practices:
   // ==========================================
   {
     id: "tg-wix-chat",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Chat",
     description: "All Wix Chat prompt agent variants with MCP integration",
     targets: [
@@ -1446,6 +1512,7 @@ Follow Wix CLI best practices:
 const DEMO_PROMPT_AGENTS: PromptAgent[] = [
   {
     id: "pa-react-specialist",
+    projectId: REACT_PROJECT_ID,
     name: "React Specialist",
     description: "An expert React developer specialized in modern React patterns, hooks, and TypeScript.",
     systemPrompt: `You are an expert React developer. Your specialties include:
@@ -1479,6 +1546,7 @@ When generating code:
   },
   {
     id: "pa-api-architect",
+    projectId: REACT_PROJECT_ID,
     name: "API Architect",
     description: "Designs and implements RESTful APIs with best practices for security and performance.",
     systemPrompt: `You are an API architecture expert. You specialize in:
@@ -1513,6 +1581,7 @@ When designing APIs:
   },
   {
     id: "pa-code-reviewer",
+    projectId: REACT_PROJECT_ID,
     name: "Code Reviewer",
     description: "Performs thorough code reviews focusing on quality, security, and best practices.",
     systemPrompt: `You are a senior code reviewer. Your reviews focus on:
@@ -1544,6 +1613,7 @@ When reviewing:
   // ==========================================
   {
     id: "pa-wix-chat-general",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Chat - General",
     description: "General-purpose Wix development assistant with access to Wix MCP for all development tasks.",
     systemPrompt: `You are a Wix development expert assistant. You help developers with all aspects of Wix application development.
@@ -1593,6 +1663,7 @@ When helping users:
   },
   {
     id: "pa-wix-chat-dashboard",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Chat - Dashboard Expert",
     description: "Specialized Wix assistant focused on dashboard page development with deep Design System knowledge.",
     systemPrompt: `You are a Wix Dashboard development expert. You specialize exclusively in creating beautiful, functional dashboard pages for Wix applications.
@@ -1649,6 +1720,7 @@ When generating code:
   },
   {
     id: "pa-wix-chat-backend",
+    projectId: WIX_PROJECT_ID,
     name: "Wix Chat - Backend Expert",
     description: "Specialized Wix assistant focused on backend development including HTTP Functions, Velo, and data management.",
     systemPrompt: `You are a Wix Backend development expert. You specialize exclusively in server-side development for Wix applications.
@@ -1720,6 +1792,7 @@ When generating code:
 const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
   {
     id: "improve-run-1",
+    projectId: WIX_PROJECT_ID,
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-dashboard",
     targetName: "Wix Chat - Dashboard Expert",
@@ -1799,6 +1872,7 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
   },
   {
     id: "improve-run-2",
+    projectId: WIX_PROJECT_ID,
     targetType: "skill",
     targetId: "skill-wix-dashboard-basic",
     targetName: "Wix Dashboard Page - Basic",
@@ -1872,6 +1946,7 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
   },
   {
     id: "improve-run-3",
+    projectId: WIX_PROJECT_ID,
     targetType: "prompt_agent",
     targetId: "pa-wix-chat-backend",
     targetName: "Wix Chat - Backend Expert",
@@ -1907,6 +1982,7 @@ const DEMO_IMPROVEMENT_RUNS: ImprovementRun[] = [
 // ==========================================
 
 export function generateDemoData(): {
+  projects: Project[];
   skills: Skill[];
   testScenarios: TestScenario[];
   testSuites: TestSuite[];
@@ -1918,6 +1994,7 @@ export function generateDemoData(): {
   improvementRuns: ImprovementRun[];
 } {
   return {
+    projects: DEMO_PROJECTS,
     skills: DEMO_SKILLS,
     testScenarios: DEMO_SCENARIOS,
     testSuites: DEMO_SUITES,

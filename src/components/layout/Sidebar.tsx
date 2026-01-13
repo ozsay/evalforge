@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -17,56 +17,86 @@ import {
   Zap,
   ChevronDown,
 } from "lucide-react";
+import { useTenantSafe } from "@lib/context";
 import { cn } from "@lib/utils";
 
 interface NavItem {
-  to: string;
+  path: string;
   label: string;
   icon: typeof LayoutDashboard;
   children?: NavItem[];
 }
 
-const navItems: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+// Base navigation items (without project prefix)
+const baseNavItems: NavItem[] = [
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   {
-    to: "/target-groups",
+    path: "/target-groups",
     label: "Target Groups",
     icon: Layers,
     children: [
-      { to: "/skills", label: "Agent Skills", icon: FileCode2 },
-      { to: "/agents", label: "Coding Agents", icon: Bot },
-      { to: "/prompt-agents", label: "Prompt Agents", icon: MessageSquare },
+      { path: "/skills", label: "Agent Skills", icon: FileCode2 },
+      { path: "/agents", label: "Coding Agents", icon: Bot },
+      { path: "/prompt-agents", label: "Prompt Agents", icon: MessageSquare },
     ],
   },
-  { to: "/scenarios", label: "Test Scenarios", icon: TestTube2 },
-  { to: "/suites", label: "Test Suites", icon: FolderKanban },
-  { to: "/evaluation", label: "Evaluation", icon: Play },
-  { to: "/self-improving", label: "Self-Improving", icon: Sparkles },
-  { to: "/results", label: "Results", icon: BarChart3 },
-  { to: "/labeling", label: "Labeling", icon: Tags },
+  { path: "/scenarios", label: "Test Scenarios", icon: TestTube2 },
+  { path: "/suites", label: "Test Suites", icon: FolderKanban },
+  { path: "/evaluation", label: "Evaluation", icon: Play },
+  { path: "/self-improving", label: "Self-Improving", icon: Sparkles },
+  { path: "/results", label: "Results", icon: BarChart3 },
+  { path: "/labeling", label: "Labeling", icon: Tags },
 ];
 
-const bottomItems: NavItem[] = [{ to: "/settings", label: "Settings", icon: Settings }];
+const baseBottomItems: NavItem[] = [{ path: "/settings", label: "Settings", icon: Settings }];
 
 export function Sidebar() {
   const location = useLocation();
+  const tenant = useTenantSafe();
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["/target-groups"]);
 
-  const toggleGroup = (to: string) => {
+  // Build project-prefixed paths
+  const projectPrefix = tenant?.projectId ? `/${tenant.projectId}` : "";
+
+  // Transform nav items to include project prefix
+  const navItems = useMemo(() => {
+    const prefixItem = (item: NavItem): NavItem => ({
+      ...item,
+      path: `${projectPrefix}${item.path}`,
+      children: item.children?.map(prefixItem),
+    });
+    return baseNavItems.map(prefixItem);
+  }, [projectPrefix]);
+
+  const bottomItems = useMemo(() => {
+    return baseBottomItems.map((item) => ({
+      ...item,
+      path: `${projectPrefix}${item.path}`,
+    }));
+  }, [projectPrefix]);
+
+  const toggleGroup = (path: string) => {
+    // Use base path for toggle state (without project prefix)
+    const basePath = path.replace(projectPrefix, "");
     setExpandedGroups((prev) =>
-      prev.includes(to) ? prev.filter((g) => g !== to) : [...prev, to]
+      prev.includes(basePath) ? prev.filter((g) => g !== basePath) : [...prev, basePath]
     );
+  };
+
+  const isGroupExpanded = (path: string) => {
+    const basePath = path.replace(projectPrefix, "");
+    return expandedGroups.includes(basePath);
   };
 
   const isPathActive = (path: string, item: NavItem): boolean => {
     if (location.pathname === path) return true;
-    if (path !== "/dashboard" && location.pathname.startsWith(path)) return true;
+    if (!path.endsWith("/dashboard") && location.pathname.startsWith(path)) return true;
     // Check if any children are active
     if (item.children) {
       return item.children.some(
         (child) =>
-          location.pathname === child.to ||
-          (child.to !== "/dashboard" && location.pathname.startsWith(child.to))
+          location.pathname === child.path ||
+          (!child.path.endsWith("/dashboard") && location.pathname.startsWith(child.path))
       );
     }
     return false;
@@ -74,24 +104,24 @@ export function Sidebar() {
 
   const renderNavItem = (item: NavItem, isChild = false) => {
     const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedGroups.includes(item.to);
-    const isActive = isPathActive(item.to, item);
+    const isExpanded = isGroupExpanded(item.path);
+    const isActive = isPathActive(item.path, item);
     const isChildActive =
       hasChildren &&
       item.children!.some(
         (child) =>
-          location.pathname === child.to ||
-          (child.to !== "/dashboard" && location.pathname.startsWith(child.to))
+          location.pathname === child.path ||
+          (!child.path.endsWith("/dashboard") && location.pathname.startsWith(child.path))
       );
 
     if (hasChildren) {
       return (
-        <li key={item.to}>
+        <li key={item.path}>
           {/* Parent with children - can be clicked to navigate AND expand */}
           <div className="space-y-1">
             <div className="flex items-center">
               <NavLink
-                to={item.to}
+                to={item.path}
                 className={cn(
                   "relative flex-1 flex items-center gap-3 px-3 py-2.5 rounded-l-lg text-sm font-medium transition-colors",
                   isActive && !isChildActive
@@ -105,7 +135,7 @@ export function Sidebar() {
                 <span>{item.label}</span>
               </NavLink>
               <button
-                onClick={() => toggleGroup(item.to)}
+                onClick={() => toggleGroup(item.path)}
                 className={cn(
                   "p-2.5 rounded-r-lg transition-colors",
                   isActive || isChildActive
@@ -142,13 +172,13 @@ export function Sidebar() {
 
     // Regular nav item (no children)
     const itemIsActive =
-      location.pathname === item.to ||
-      (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
+      location.pathname === item.path ||
+      (!item.path.endsWith("/dashboard") && location.pathname.startsWith(item.path));
 
     return (
-      <li key={item.to}>
+      <li key={item.path}>
         <NavLink
-          to={item.to}
+          to={item.path}
           className={cn(
             "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
             itemIsActive
@@ -188,19 +218,36 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 flex flex-col z-30">
-      {/* Logo */}
-      <div className="h-16 px-6 flex items-center gap-3 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-md shadow-violet-500/20">
-          <Zap className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-            EvalForge
-          </h1>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider -mt-0.5">
-            Skills Testing
-          </p>
-        </div>
+      {/* Logo & Project */}
+      <div className="px-4 py-4 border-b border-gray-100">
+        <Link 
+          to="/projects" 
+          className="flex items-center gap-3 group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-md shadow-violet-500/20 group-hover:shadow-lg group-hover:shadow-violet-500/30 transition-shadow">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight group-hover:text-violet-700 transition-colors">
+              EvalForge
+            </h1>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider -mt-0.5">
+              Agent Evaluation
+            </p>
+          </div>
+        </Link>
+        
+        {/* Current Project */}
+        {tenant && (
+          <div className="mt-3 px-3 py-2 bg-gray-50 rounded-lg">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+              Project
+            </p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {tenant.project?.name || "Unknown"}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -212,11 +259,11 @@ export function Sidebar() {
       <div className="px-3 py-4 border-t border-gray-100">
         <ul className="space-y-1">
           {bottomItems.map((item) => {
-            const isActive = location.pathname === item.to;
+            const isActive = location.pathname === item.path;
             return (
-              <li key={item.to}>
+              <li key={item.path}>
                 <NavLink
-                  to={item.to}
+                  to={item.path}
                   className={cn(
                     "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                     isActive

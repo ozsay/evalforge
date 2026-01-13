@@ -3,6 +3,11 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { generateId } from "@lib/utils";
 import {
+  // Project / Tenant types
+  Project,
+  CreateProjectInput,
+  UpdateProjectInput,
+  // Core types
   Skill,
   SkillVersion,
   TestScenario,
@@ -62,6 +67,7 @@ const demoData = generateDemoData();
 
 interface AppState {
   // Data
+  projects: Project[];
   skills: Skill[];
   testScenarios: TestScenario[];
   testSuites: TestSuite[];
@@ -71,6 +77,12 @@ interface AppState {
   evalRuns: EvalRun[];
   improvementRuns: ImprovementRun[];
   settings: Settings;
+
+  // Project Actions
+  addProject: (input: CreateProjectInput) => Project;
+  updateProject: (id: string, input: UpdateProjectInput) => void;
+  deleteProject: (id: string) => void;
+  getProjectById: (id: string) => Project | undefined;
 
   // Skill Actions
   addSkill: (input: CreateSkillInput) => Skill;
@@ -197,6 +209,7 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Initial State - Demo data for skills/scenarios/suites/runs, built-in agents
+      projects: demoData.projects || [],
       skills: demoData.skills,
       testScenarios: demoData.testScenarios,
       testSuites: demoData.testSuites || [],
@@ -208,6 +221,52 @@ export const useStore = create<AppState>()(
       settings: { ...defaultSettings },
 
       // ==========================================
+      // Project Actions
+      // ==========================================
+
+      addProject: (input) => {
+        const now = new Date().toISOString();
+        const project: Project = {
+          id: generateId(),
+          ...input,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({
+          projects: [...state.projects, project],
+        }));
+        return project;
+      },
+
+      updateProject: (id, input) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id
+              ? { ...p, ...input, updatedAt: new Date().toISOString() }
+              : p
+          ),
+        }));
+      },
+
+      deleteProject: (id) => {
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+          // Also delete all data belonging to this project
+          skills: state.skills.filter((s) => s.projectId !== id),
+          testScenarios: state.testScenarios.filter((s) => s.projectId !== id),
+          testSuites: state.testSuites.filter((s) => s.projectId !== id),
+          targetGroups: state.targetGroups.filter((t) => t.projectId !== id),
+          promptAgents: state.promptAgents.filter((p) => p.projectId !== id),
+          evalRuns: state.evalRuns.filter((r) => r.projectId !== id),
+          improvementRuns: state.improvementRuns.filter((r) => r.projectId !== id),
+        }));
+      },
+
+      getProjectById: (id) => {
+        return get().projects.find((p) => p.id === id);
+      },
+
+      // ==========================================
       // Skill Actions
       // ==========================================
 
@@ -217,12 +276,14 @@ export const useStore = create<AppState>()(
         
         const skill: Skill = {
           id: generateId(),
+          projectId: input.projectId,
           name: input.name || metadata.name || "Untitled Skill",
           description: input.description || metadata.description || "",
           skillMd: input.skillMd,
           metadata,
           versions: [],
           testScenarios: [],
+          syncSource: input.syncSource,
           createdAt: now,
           updatedAt: now,
         };
@@ -290,9 +351,11 @@ export const useStore = create<AppState>()(
         if (!skill) throw new Error("Skill not found");
 
         return get().addSkill({
+          projectId: skill.projectId,
           name: `${skill.name} (Copy)`,
           description: skill.description,
           skillMd: skill.skillMd,
+          syncSource: skill.syncSource,
         });
       },
 
@@ -526,6 +589,7 @@ export const useStore = create<AppState>()(
         if (!suite) throw new Error("Test suite not found");
 
         return get().addTestSuite({
+          projectId: suite.projectId,
           name: `${suite.name} (Copy)`,
           description: suite.description,
           scenarioIds: [...suite.scenarioIds],
@@ -573,6 +637,7 @@ export const useStore = create<AppState>()(
         const now = new Date().toISOString();
         const targetGroup: TargetGroup = {
           id: generateId(),
+          projectId: input.projectId,
           name: input.name,
           description: input.description,
           targets: input.targets.map((t) => ({ ...t, id: t.id || generateId() })),
@@ -613,6 +678,7 @@ export const useStore = create<AppState>()(
         if (!group) throw new Error("Target group not found");
 
         return get().addTargetGroup({
+          projectId: group.projectId,
           name: `${group.name} (Copy)`,
           description: group.description,
           targets: group.targets.map((t) => ({ ...t, id: generateId() })),
@@ -703,6 +769,7 @@ export const useStore = create<AppState>()(
         if (!promptAgent) throw new Error("Prompt agent not found");
 
         return get().addPromptAgent({
+          projectId: promptAgent.projectId,
           name: `${promptAgent.name} (Copy)`,
           description: promptAgent.description,
           systemPrompt: promptAgent.systemPrompt,
@@ -817,6 +884,7 @@ export const useStore = create<AppState>()(
 
         const evalRun: EvalRun = {
           id: generateId(),
+          projectId: input.projectId,
           name: input.name,
           skillId: input.skillId,
           skillName: skill?.name || "Unknown Skill",
@@ -1014,6 +1082,7 @@ export const useStore = create<AppState>()(
       loadDemoData: () => {
         const demoData = generateDemoData();
         set({
+          projects: demoData.projects || [],
           skills: demoData.skills,
           testScenarios: demoData.testScenarios,
           testSuites: demoData.testSuites || [],
@@ -1027,6 +1096,7 @@ export const useStore = create<AppState>()(
 
       clearAllData: () => {
         set({
+          projects: [],
           skills: [],
           testScenarios: [],
           testSuites: [],
@@ -1084,29 +1154,31 @@ export const useStore = create<AppState>()(
       // Only persist agents and settings (user customizations)
       // Skills, testScenarios, evalRuns always load fresh from demo data
       partialize: (state) => ({
+        projects: state.projects,
         agents: state.agents,
         settings: state.settings,
       }),
-      // Merge persisted agents/settings with fresh demo data
+      // Merge persisted data with fresh demo data
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<AppState> | undefined;
         
-        // Always use fresh demo data for skills, testScenarios, evalRuns
-        // Merge persisted agents with built-in agents and demo custom agents (avoid duplicates)
+        // Projects: merge persisted with demo (avoid duplicates)
+        const persistedProjects = persisted?.projects || [];
+        const demoProjectIds = (demoData.projects || []).map(p => p.id);
+        const userProjects = persistedProjects.filter(p => !demoProjectIds.includes(p.id));
+        
+        // Agents: merge persisted with built-in and demo custom agents
         const persistedAgents = persisted?.agents || [];
         const builtInIds = BUILTIN_AGENTS.map(a => a.id);
-        
-        // Get demo custom agents (not built-in)
         const demoCustomAgents = demoData.agents.filter(a => !a.isBuiltIn);
         const demoCustomIds = demoCustomAgents.map(a => a.id);
-        
-        // User-created custom agents (not built-in and not from demo)
         const userCustomAgents = persistedAgents.filter(
           a => !builtInIds.includes(a.id) && !a.isBuiltIn && !demoCustomIds.includes(a.id)
         );
         
         return {
           ...currentState,
+          projects: [...(demoData.projects || []), ...userProjects],
           agents: [...BUILTIN_AGENTS, ...demoCustomAgents, ...userCustomAgents],
           settings: persisted?.settings || currentState.settings,
         };
@@ -1119,15 +1191,89 @@ export const useStore = create<AppState>()(
 // Selector Hooks
 // ==========================================
 
-export const useSkills = () => useStore((state) => state.skills);
-export const useTestScenarios = () => useStore((state) => state.testScenarios);
-export const useTestSuites = () => useStore((state) => state.testSuites);
-export const useTargetGroups = () => useStore((state) => state.targetGroups);
-export const usePromptAgents = () => useStore((state) => state.promptAgents);
+// Import tenant context for project-scoped hooks
+import { useTenantSafe } from "@lib/context";
+
+// Project hooks (no tenant scoping needed)
+export const useProjects = () => useStore((state) => state.projects);
+export const useProjectById = (id: string) => useStore((state) => state.projects.find((p) => p.id === id));
+
+// Raw hooks (return all data, for use outside tenant context)
+export const useAllSkills = () => useStore((state) => state.skills);
+export const useAllTestScenarios = () => useStore((state) => state.testScenarios);
+export const useAllTestSuites = () => useStore((state) => state.testSuites);
+export const useAllTargetGroups = () => useStore((state) => state.targetGroups);
+export const useAllPromptAgents = () => useStore((state) => state.promptAgents);
+export const useAllEvalRuns = () => useStore((state) => state.evalRuns);
+export const useAllImprovementRuns = () => useStore((state) => state.improvementRuns);
+
+// Project-scoped hooks (automatically use tenant context)
+export const useSkills = () => {
+  const tenant = useTenantSafe();
+  const skills = useStore((state) => state.skills);
+  return useMemo(
+    () => tenant?.projectId ? skills.filter((s) => s.projectId === tenant.projectId) : skills,
+    [skills, tenant?.projectId]
+  );
+};
+
+export const useTestScenarios = () => {
+  const tenant = useTenantSafe();
+  const scenarios = useStore((state) => state.testScenarios);
+  return useMemo(
+    () => tenant?.projectId ? scenarios.filter((s) => s.projectId === tenant.projectId) : scenarios,
+    [scenarios, tenant?.projectId]
+  );
+};
+
+export const useTestSuites = () => {
+  const tenant = useTenantSafe();
+  const suites = useStore((state) => state.testSuites);
+  return useMemo(
+    () => tenant?.projectId ? suites.filter((s) => s.projectId === tenant.projectId) : suites,
+    [suites, tenant?.projectId]
+  );
+};
+
+export const useTargetGroups = () => {
+  const tenant = useTenantSafe();
+  const groups = useStore((state) => state.targetGroups);
+  return useMemo(
+    () => tenant?.projectId ? groups.filter((g) => g.projectId === tenant.projectId) : groups,
+    [groups, tenant?.projectId]
+  );
+};
+
+export const usePromptAgents = () => {
+  const tenant = useTenantSafe();
+  const agents = useStore((state) => state.promptAgents);
+  return useMemo(
+    () => tenant?.projectId ? agents.filter((a) => a.projectId === tenant.projectId) : agents,
+    [agents, tenant?.projectId]
+  );
+};
+
+export const useEvalRuns = () => {
+  const tenant = useTenantSafe();
+  const runs = useStore((state) => state.evalRuns);
+  return useMemo(
+    () => tenant?.projectId ? runs.filter((r) => r.projectId === tenant.projectId) : runs,
+    [runs, tenant?.projectId]
+  );
+};
+
+export const useImprovementRuns = () => {
+  const tenant = useTenantSafe();
+  const runs = useStore((state) => state.improvementRuns);
+  return useMemo(
+    () => tenant?.projectId ? runs.filter((r) => r.projectId === tenant.projectId) : runs,
+    [runs, tenant?.projectId]
+  );
+};
+
+// Agents are not project-scoped (shared across projects)
 export const useAgents = () => useStore((state) => state.agents);
 export const useCodingTools = () => useStore((state) => state.agents); // Alias for useAgents
-export const useEvalRuns = () => useStore((state) => state.evalRuns);
-export const useImprovementRuns = () => useStore((state) => state.improvementRuns);
 export const useSettings = () => useStore((state) => state.settings);
 
 export const useImprovementRunById = (runId: string) => {

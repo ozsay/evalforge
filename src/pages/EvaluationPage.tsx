@@ -27,6 +27,7 @@ import { Input, Select } from "@components/ui/Input";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/Tabs";
+import { useTenant } from "@lib/context";
 import { useStore, useSkills, useTestScenarios, useTestSuites, useRecentEvalRuns, useAgents } from "@lib/store";
 import type {
   EvalRunConfig,
@@ -77,6 +78,7 @@ export function EvaluationPage() {
   const scenarioIdParam = searchParams.get("scenarioId");
   const scenarioIdsParam = searchParams.get("scenarioIds"); // For suite selection
 
+  const { projectId } = useTenant();
   const skills = useSkills();
   const testScenarios = useTestScenarios();
   const testSuites = useTestSuites();
@@ -202,6 +204,7 @@ export function EvaluationPage() {
         : `Evaluation ${new Date().toLocaleString()}`;
 
     const run = createEvalRun({
+      projectId,
       name: runName,
       skillId: selectedSkillId || "suite-run",
       config,

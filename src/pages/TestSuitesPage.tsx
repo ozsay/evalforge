@@ -23,6 +23,7 @@ import { Input, Textarea } from "@components/ui/Input";
 import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
+import { useTenant } from "@lib/context";
 import { useStore, useTestSuites, useTestScenarios, useSkills } from "@lib/store";
 import type { TestSuite, CreateTestSuiteInput, TestScenario } from "@lib/types";
 import { cn, formatRelativeTime } from "@lib/utils";
@@ -42,6 +43,7 @@ const item = {
 
 export function TestSuitesPage() {
   const navigate = useNavigate();
+  const { projectId } = useTenant();
   const testSuites = useTestSuites();
   const allScenarios = useTestScenarios();
   const skills = useSkills();
@@ -57,8 +59,8 @@ export function TestSuitesPage() {
   const [editingSuite, setEditingSuite] = useState<TestSuite | null>(null);
   const [expandedSuite, setExpandedSuite] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState<Omit<CreateTestSuiteInput, "scenarioIds" | "tags">>({
+  // Form state - projectId is added at submit time, not stored in form
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
@@ -113,6 +115,7 @@ export function TestSuitesPage() {
     if (!formData.name) return;
 
     const suiteInput: CreateTestSuiteInput = {
+      projectId,
       ...formData,
       scenarioIds: selectedScenarioIds,
       tags: tags.length > 0 ? tags : undefined,

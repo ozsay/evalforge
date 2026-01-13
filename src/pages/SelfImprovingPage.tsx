@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
 import { Select } from "@components/ui/Input";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
+import { useTenant } from "@lib/context";
 import {
   useStore,
   useImprovementRuns,
@@ -67,6 +68,7 @@ export function SelfImprovingPage() {
 
 function StartView() {
   const navigate = useNavigate();
+  const { projectId } = useTenant();
   const improvementRuns = useImprovementRuns();
   const skills = useSkills();
   const promptAgents = usePromptAgents();
@@ -113,6 +115,7 @@ function StartView() {
     if (!targetId || !selectedTarget || !testSuiteId || !selectedTestSuite) return;
 
     const run = startImprovementRun({
+      projectId,
       targetType,
       targetId,
       targetName: selectedTarget.name,
@@ -121,7 +124,7 @@ function StartView() {
       maxIterations,
     });
 
-    navigate(`/self-improving/${run.id}`);
+    navigate(`/${projectId}/self-improving/${run.id}`);
   };
 
   return (

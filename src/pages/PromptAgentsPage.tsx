@@ -21,6 +21,7 @@ import { Input, Textarea, Select } from "@components/ui/Input";
 import { Modal, ModalBody, ModalFooter } from "@components/ui/Modal";
 import { Badge } from "@components/ui/Badge";
 import { EmptyState } from "@components/ui/EmptyState";
+import { useTenant } from "@lib/context";
 import { useStore, usePromptAgents } from "@lib/store";
 import type {
   PromptAgent,
@@ -55,6 +56,7 @@ interface MCPServerFormData {
 }
 
 export function PromptAgentsPage() {
+  const { projectId } = useTenant();
   const promptAgents = usePromptAgents();
   const { addPromptAgent, updatePromptAgent, deletePromptAgent, duplicatePromptAgent } = useStore();
 
@@ -148,6 +150,7 @@ export function PromptAgentsPage() {
       }));
 
     const input: CreatePromptAgentInput = {
+      projectId,
       name: formData.name,
       description: formData.description,
       systemPrompt: formData.systemPrompt,

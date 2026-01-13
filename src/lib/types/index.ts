@@ -2,6 +2,25 @@
 // Core Types for EvalForge - Agent Skills Testing
 // ==========================================
 
+// ==========================================
+// Project / Tenant Types
+// ==========================================
+
+/**
+ * A Project represents a tenant/workspace for data isolation.
+ * All entities (skills, scenarios, agents, etc.) belong to a project.
+ */
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateProjectInput = Omit<Project, "id" | "createdAt" | "updatedAt">;
+export type UpdateProjectInput = Partial<CreateProjectInput>;
+
 // LLM Provider Types
 export type LLMProvider = "openai" | "anthropic" | "google" | "local";
 
@@ -155,6 +174,8 @@ export type SkillSyncSource = GitHubSyncSource | PromptHubSyncSource | NoSyncSou
 
 export interface Skill {
   id: string;
+  /** Project/tenant this skill belongs to */
+  projectId: string;
   name: string;
   description: string;
   /** The current SKILL.md content for this skill */
@@ -174,6 +195,7 @@ export interface Skill {
 }
 
 export type CreateSkillInput = {
+  projectId: string;
   name: string;
   description: string;
   skillMd: string;
@@ -313,6 +335,8 @@ export interface ExpectedFile {
  */
 export interface TestScenario {
   id: string;
+  /** Project/tenant this scenario belongs to */
+  projectId: string;
   /** 
    * @deprecated Use targetGroupId instead. Kept for backward compatibility.
    * The Skill this scenario tests.
@@ -365,6 +389,8 @@ export type UpdateTestScenarioInput = Partial<CreateTestScenarioInput>;
 
 export interface TestSuite {
   id: string;
+  /** Project/tenant this suite belongs to */
+  projectId: string;
   name: string;
   description: string;
   scenarioIds: string[];
@@ -583,6 +609,8 @@ export interface EvalRunConfig {
 
 export interface EvalRun {
   id: string;
+  /** Project/tenant this run belongs to */
+  projectId: string;
   name: string;
   skillId: string;
   skillName: string;
@@ -597,6 +625,7 @@ export interface EvalRun {
 }
 
 export type CreateEvalRunInput = {
+  projectId: string;
   name: string;
   skillId: string;
   config: EvalRunConfig;
@@ -868,6 +897,8 @@ export interface PromptAgentConfig {
  */
 export interface PromptAgent {
   id: string;
+  /** Project/tenant this prompt agent belongs to */
+  projectId: string;
   name: string;
   description: string;
   /** The system prompt that defines agent behavior */
@@ -939,6 +970,8 @@ export interface Target {
  */
 export interface TargetGroup {
   id: string;
+  /** Project/tenant this target group belongs to */
+  projectId: string;
   name: string;
   description: string;
   targets: Target[];
@@ -1033,6 +1066,8 @@ export type ImprovementTargetType = "skill" | "prompt_agent" | "coding_agent";
  */
 export interface ImprovementRun {
   id: string;
+  /** Project/tenant this run belongs to */
+  projectId: string;
   /** Type of target being improved */
   targetType: ImprovementTargetType;
   /** ID of the target being improved */
@@ -1062,6 +1097,7 @@ export interface ImprovementRun {
 }
 
 export type CreateImprovementRunInput = {
+  projectId: string;
   targetType: ImprovementTargetType;
   targetId: string;
   targetName: string;

@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Search, Bell, Command } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Bell, Command, FolderKanban, ChevronDown, Check, ExternalLink } from "lucide-react";
+import { useTenantSafe } from "@lib/context";
+import { useProjects } from "@lib/store";
 import { cn } from "@lib/utils";
 
 interface HeaderProps {
@@ -10,17 +13,127 @@ interface HeaderProps {
 }
 
 export function Header({ title, description, actions }: HeaderProps) {
+  const navigate = useNavigate();
+  const tenant = useTenantSafe();
+  const projects = useProjects();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsProjectMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleProjectSwitch = (projectId: string) => {
+    setIsProjectMenuOpen(false);
+    // Navigate to the same page in the new project
+    const currentPath = window.location.pathname;
+    const pathParts = currentPath.split("/").filter(Boolean);
+    if (pathParts.length >= 2) {
+      const pageRoute = pathParts.slice(1).join("/");
+      navigate(`/${projectId}/${pageRoute}`);
+    } else {
+      navigate(`/${projectId}/dashboard`);
+    }
+  };
 
   return (
     <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-20">
       <div className="h-full px-8 flex items-center justify-between">
-        {/* Left side - Title */}
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-          {description && (
-            <p className="text-sm text-gray-500">{description}</p>
+        {/* Left side - Project Indicator & Title */}
+        <div className="flex items-center gap-4">
+          {/* Project Switcher */}
+          {tenant?.project && (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors",
+                  "bg-violet-50 text-violet-700 hover:bg-violet-100",
+                  isProjectMenuOpen && "bg-violet-100"
+                )}
+              >
+                <FolderKanban className="w-4 h-4" />
+                <span className="font-medium text-sm max-w-[150px] truncate">
+                  {tenant.project.name}
+                </span>
+                <ChevronDown className={cn(
+                  "w-4 h-4 transition-transform",
+                  isProjectMenuOpen && "rotate-180"
+                )} />
+              </button>
+
+              <AnimatePresence>
+                {isProjectMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                  >
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Switch Project
+                      </p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {projects.map((project) => (
+                        <button
+                          key={project.id}
+                          onClick={() => handleProjectSwitch(project.id)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors",
+                            project.id === tenant.projectId && "bg-violet-50"
+                          )}
+                        >
+                          <FolderKanban className={cn(
+                            "w-4 h-4",
+                            project.id === tenant.projectId ? "text-violet-600" : "text-gray-400"
+                          )} />
+                          <span className={cn(
+                            "flex-1 text-sm truncate",
+                            project.id === tenant.projectId ? "text-violet-700 font-medium" : "text-gray-700"
+                          )}>
+                            {project.name}
+                          </span>
+                          {project.id === tenant.projectId && (
+                            <Check className="w-4 h-4 text-violet-600" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-gray-100 p-1">
+                      <button
+                        onClick={() => {
+                          setIsProjectMenuOpen(false);
+                          navigate("/projects");
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        All Projects
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
+
+          {/* Title */}
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+            {description && (
+              <p className="text-sm text-gray-500">{description}</p>
+            )}
+          </div>
         </div>
 
         {/* Right side - Search & Actions */}

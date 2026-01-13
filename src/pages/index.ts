@@ -1,3 +1,4 @@
+export { ProjectsPage } from "./ProjectsPage";
 export { Dashboard } from "./Dashboard";
 export { SkillsPage } from "./SkillsPage";
 export { TestScenariosPage } from "./TestScenariosPage";
