@@ -77,7 +77,7 @@ function DiffView({ diff }: { diff: DiffContent }) {
           <button
             onClick={() => setViewMode("split")}
             className={cn(
-              "px-2 py-1 text-xs rounded",
+              "px-2 py-1 text-xs rounded-sm",
               viewMode === "split" 
                 ? "bg-gray-600 text-white" 
                 : "text-gray-400 hover:text-white"
@@ -88,7 +88,7 @@ function DiffView({ diff }: { diff: DiffContent }) {
           <button
             onClick={() => setViewMode("unified")}
             className={cn(
-              "px-2 py-1 text-xs rounded",
+              "px-2 py-1 text-xs rounded-sm",
               viewMode === "unified" 
                 ? "bg-gray-600 text-white" 
                 : "text-gray-400 hover:text-white"
@@ -132,7 +132,7 @@ function DiffView({ diff }: { diff: DiffContent }) {
                 line.type === "unchanged" && "text-gray-400"
               )}
             >
-              <span className="w-4 flex-shrink-0 text-gray-500">
+              <span className="w-4 shrink-0 text-gray-500">
                 {line.type === "added" ? <Plus className="w-3 h-3" /> : 
                  line.type === "removed" ? <Minus className="w-3 h-3" /> : ""}
               </span>
@@ -217,7 +217,7 @@ function ExecutionTraceView({ trace }: { trace: ExecutionTrace }) {
                       {cmd.command}
                     </code>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Badge 
                       variant={cmd.exitCode === 0 ? "success" : "error"} 
                       size="sm"
@@ -269,7 +269,7 @@ function ExecutionTraceView({ trace }: { trace: ExecutionTrace }) {
               <div 
                 key={i}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded text-sm",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm",
                   file.action === "created" && "bg-green-50 text-green-700",
                   file.action === "modified" && "bg-blue-50 text-blue-700",
                   file.action === "deleted" && "bg-red-50 text-red-700"
@@ -474,7 +474,7 @@ function AnalysisCard({ analysis, index }: { analysis: FailureAnalysisType; inde
                   {/* Details */}
                   <div className="bg-white rounded-lg p-4 border border-gray-100">
                     <div className="flex items-start gap-2 mb-2">
-                      <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-gray-700">Details</h4>
                         <p className="text-sm text-gray-600 mt-1">{analysis.details}</p>
@@ -485,7 +485,7 @@ function AnalysisCard({ analysis, index }: { analysis: FailureAnalysisType; inde
                   {/* Root Cause */}
                   <div className="bg-white rounded-lg p-4 border border-gray-100">
                     <div className="flex items-start gap-2 mb-2">
-                      <Target className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                      <Target className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-gray-700">Root Cause Analysis</h4>
                         <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{analysis.rootCause}</p>
@@ -496,7 +496,7 @@ function AnalysisCard({ analysis, index }: { analysis: FailureAnalysisType; inde
                   {/* Suggested Fix */}
                   <div className="bg-white rounded-lg p-4 border border-green-100">
                     <div className="flex items-start gap-2 mb-2">
-                      <Wrench className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <Wrench className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-green-700">Suggested Fix</h4>
                         <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{analysis.suggestedFix}</p>
@@ -519,7 +519,7 @@ function AnalysisCard({ analysis, index }: { analysis: FailureAnalysisType; inde
                   {analysis.similarIssues && analysis.similarIssues.length > 0 && (
                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
                       <div className="flex items-start gap-2">
-                        <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                         <div>
                           <h4 className="text-sm font-medium text-blue-700">Historical Context</h4>
                           <ul className="text-sm text-gray-600 mt-1 space-y-1">

@@ -122,7 +122,7 @@ export function Dashboard() {
                     <Link to={tenantUrl("/skills")}>
                       <motion.div
                         whileHover={{ y: -2 }}
-                        className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-100 border border-violet-200 cursor-pointer group"
+                        className="p-4 rounded-xl bg-linear-to-br from-violet-50 to-purple-100 border border-violet-200 cursor-pointer group"
                       >
                         <div className="w-10 h-10 rounded-lg bg-violet-500 flex items-center justify-center mb-3">
                           <FileCode2 className="w-5 h-5 text-white" />
@@ -140,7 +140,7 @@ export function Dashboard() {
                     <Link to={tenantUrl("/scenarios")}>
                       <motion.div
                         whileHover={{ y: -2 }}
-                        className="p-4 rounded-xl bg-gradient-to-br from-teal-50 to-cyan-100 border border-teal-200 cursor-pointer group"
+                        className="p-4 rounded-xl bg-linear-to-br from-teal-50 to-cyan-100 border border-teal-200 cursor-pointer group"
                       >
                         <div className="w-10 h-10 rounded-lg bg-teal-500 flex items-center justify-center mb-3">
                           <TestTube2 className="w-5 h-5 text-white" />
@@ -158,7 +158,7 @@ export function Dashboard() {
                     <Link to={tenantUrl("/evaluation")}>
                       <motion.div
                         whileHover={{ y: -2 }}
-                        className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-100 border border-orange-200 cursor-pointer group"
+                        className="p-4 rounded-xl bg-linear-to-br from-orange-50 to-amber-100 border border-orange-200 cursor-pointer group"
                       >
                         <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center mb-3">
                           <Zap className="w-5 h-5 text-white" />
@@ -339,7 +339,7 @@ export function Dashboard() {
                           to={`/scenarios?skillId=${skill.id}`}
                           className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center">
                             <FileCode2 className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -363,26 +363,26 @@ export function Dashboard() {
             {/* Getting Started */}
             {stats.totalSkills === 0 && (
               <motion.div variants={item}>
-                <Card className="bg-gradient-to-br from-primary-50 to-violet-100 border-primary-200">
+                <Card className="bg-linear-to-br from-primary-50 to-violet-100 border-primary-200">
                   <CardContent className="p-4">
                     <h4 className="font-semibold text-gray-900 mb-2">
                       Getting Started
                     </h4>
                     <ol className="text-sm text-gray-700 space-y-2">
                       <li className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center shrink-0">
                           1
                         </span>
                         <span>Create your first SKILL.md with instructions</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-primary-400 text-white text-xs flex items-center justify-center flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-primary-400 text-white text-xs flex items-center justify-center shrink-0">
                           2
                         </span>
                         <span>Add test scenarios with assertions</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-primary-300 text-white text-xs flex items-center justify-center flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-primary-300 text-white text-xs flex items-center justify-center shrink-0">
                           3
                         </span>
                         <span>Run evaluations across different models</span>
@@ -432,7 +432,7 @@ function StatCard({
             <div className="flex items-start justify-between mb-4">
               <div
                 className={cn(
-                  "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center",
+                  "w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center",
                   colorClasses[color]
                 )}
               >

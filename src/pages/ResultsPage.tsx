@@ -599,7 +599,7 @@ function RunCard({
               e.stopPropagation();
               onSelect();
             }}
-            className="rounded text-primary-600"
+            className="rounded-sm text-primary-600"
           />
 
           <div className="flex-1">
@@ -889,7 +889,7 @@ function LLMTracingTable({ trace }: { trace: NonNullable<EvalRun["results"][0]["
                 <td className="px-3 py-2 text-gray-500">{step.stepNumber}</td>
                 <td className="px-3 py-2">
                   <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                    "inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium",
                     stepTypeColors[step.type] || "bg-gray-100 text-gray-700"
                   )}>
                     {stepTypeLabels[step.type] || step.type}
@@ -1196,23 +1196,23 @@ function ComparisonHeatmap({ runs }: { runs: EvalRun[] }) {
       {/* Legend */}
       <div className="mt-6 flex items-center justify-center gap-4">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-error-400 rounded" />
+          <div className="w-4 h-4 bg-error-400 rounded-sm" />
           <span className="text-xs text-gray-600">0-20%</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-warning-400 rounded" />
+          <div className="w-4 h-4 bg-warning-400 rounded-sm" />
           <span className="text-xs text-gray-600">20-40%</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-warning-200 rounded" />
+          <div className="w-4 h-4 bg-warning-200 rounded-sm" />
           <span className="text-xs text-gray-600">40-60%</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-success-200 rounded" />
+          <div className="w-4 h-4 bg-success-200 rounded-sm" />
           <span className="text-xs text-gray-600">60-80%</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-success-400 rounded" />
+          <div className="w-4 h-4 bg-success-400 rounded-sm" />
           <span className="text-xs text-gray-600">80-100%</span>
         </div>
       </div>

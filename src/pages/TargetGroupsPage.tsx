@@ -306,7 +306,7 @@ export function TargetGroupsPage() {
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded flex items-center justify-center",
+                        "w-6 h-6 rounded-sm flex items-center justify-center",
                         type.color
                       )}
                     >
@@ -424,7 +424,7 @@ function TargetGroupCard({
               )}
             </button>
 
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0">
               <Layers className="w-5 h-5 text-white" />
             </div>
 

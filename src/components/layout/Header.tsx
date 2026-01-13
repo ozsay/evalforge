@@ -158,7 +158,7 @@ export function Header({ title, description, actions }: HeaderProps) {
                     : "border-gray-200 hover:border-gray-300"
                 )}
               />
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[10px] font-medium text-gray-400 bg-white border border-gray-200 rounded px-1.5 py-0.5">
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[10px] font-medium text-gray-400 bg-white border border-gray-200 rounded-sm px-1.5 py-0.5">
                 <Command className="w-3 h-3" />K
               </kbd>
             </motion.div>

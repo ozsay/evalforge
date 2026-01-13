@@ -343,7 +343,7 @@ export function SkillsPage() {
 
                   <div className="border-t pt-4 mt-4">
                     <p className="text-xs font-medium text-gray-500 mb-2">Instructions Preview:</p>
-                    <pre className="text-xs text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border">
+                    <pre className="text-xs text-gray-700 whitespace-pre-wrap bg-white p-3 rounded-sm border">
                       {extractSkillContent(skillMd).slice(0, 500)}
                       {extractSkillContent(skillMd).length > 500 && "..."}
                     </pre>
@@ -522,7 +522,7 @@ function SkillCard({
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             {/* Icon */}
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-violet-400 to-purple-600 flex items-center justify-center shrink-0">
               <FileCode2 className="w-6 h-6 text-white" />
             </div>
 
@@ -663,7 +663,7 @@ function VersionHistory({ skill }: { skill: Skill }) {
               <span>T={version.model.temperature}</span>
             </div>
 
-            <div className="mt-2 p-2 bg-white rounded border">
+            <div className="mt-2 p-2 bg-white rounded-sm border">
               <pre className="text-xs text-gray-700 font-mono line-clamp-3">
                 {version.skillMd.slice(0, 200)}...
               </pre>

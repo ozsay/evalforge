@@ -160,7 +160,7 @@ export function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="bg-gradient-to-br from-primary-50 to-violet-100 rounded-xl p-6 border border-primary-200">
+                  <div className="bg-linear-to-br from-primary-50 to-violet-100 rounded-xl p-6 border border-primary-200">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-white rounded-lg shadow-sm">
                         <Download className="w-6 h-6 text-primary-600" />
@@ -252,7 +252,7 @@ export function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="bg-warning-50 border border-warning-200 rounded-lg p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-warning-500 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-warning-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-warning-700">
                         Mock Mode Active
@@ -380,7 +380,7 @@ export function SettingsPage() {
                         <span className="flex-1 text-sm text-gray-500">
                           ID: {label.id}
                         </span>
-                        <kbd className="px-2 py-0.5 text-xs font-mono bg-white border border-gray-200 rounded">
+                        <kbd className="px-2 py-0.5 text-xs font-mono bg-white border border-gray-200 rounded-sm">
                           {label.shortcut}
                         </kbd>
                         <button

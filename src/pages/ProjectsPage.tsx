@@ -79,7 +79,7 @@ export function ProjectsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-6">
@@ -137,7 +137,7 @@ export function ProjectsPage() {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-violet-400 to-purple-600 flex items-center justify-center">
                         <FolderKanban className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

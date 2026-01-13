@@ -36,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "w-full h-10 px-3.5 rounded-lg border bg-white text-gray-900 text-sm",
               "placeholder:text-gray-400",
               "transition-colors duration-150",
-              "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
+              "focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
               "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
               error
                 ? "border-error-500 focus:ring-error-500 focus:border-error-500"
@@ -98,7 +98,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             "w-full px-3.5 py-2.5 rounded-lg border bg-white text-gray-900 text-sm",
             "placeholder:text-gray-400 resize-none",
             "transition-colors duration-150",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
+            "focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
             "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
             error
               ? "border-error-500 focus:ring-error-500 focus:border-error-500"
@@ -152,7 +152,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className={cn(
             "w-full h-10 px-3.5 rounded-lg border bg-white text-gray-900 text-sm",
             "transition-colors duration-150",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
+            "focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
             "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
             error
               ? "border-error-500 focus:ring-error-500 focus:border-error-500"

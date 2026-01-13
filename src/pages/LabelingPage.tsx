@@ -336,7 +336,7 @@ export function LabelingPage() {
                         <span className="flex-1 text-left text-sm font-medium text-gray-700">
                           {label.name}
                         </span>
-                        <kbd className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-500 font-mono">
+                        <kbd className="px-2 py-1 bg-gray-100 rounded-sm text-xs text-gray-500 font-mono">
                           {label.shortcut}
                         </kbd>
                       </button>

@@ -442,7 +442,7 @@ function RunDetailView({ runId }: { runId: string }) {
         className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
       >
         <motion.div variants={itemVariants}>
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100">
+          <Card className="bg-linear-to-br from-gray-50 to-gray-100">
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
@@ -458,7 +458,7 @@ function RunDetailView({ runId }: { runId: string }) {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="bg-gradient-to-br from-violet-50 to-purple-100">
+          <Card className="bg-linear-to-br from-violet-50 to-purple-100">
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-violet-200 flex items-center justify-center">
@@ -476,7 +476,7 @@ function RunDetailView({ runId }: { runId: string }) {
         <motion.div variants={itemVariants}>
           <Card
             className={cn(
-              "bg-gradient-to-br",
+              "bg-linear-to-br",
               improvementDelta > 0
                 ? "from-emerald-50 to-green-100"
                 : improvementDelta < 0
@@ -713,7 +713,7 @@ function IterationCard({
                           <div className="grid grid-cols-2 gap-3 text-xs font-mono">
                             <div>
                               <span className="text-red-500 font-medium">- Before:</span>
-                              <pre className="mt-1 p-2 bg-red-50 rounded text-gray-700 overflow-x-auto whitespace-pre-wrap">
+                              <pre className="mt-1 p-2 bg-red-50 rounded-sm text-gray-700 overflow-x-auto whitespace-pre-wrap">
                                 {change.before.length > 200
                                   ? change.before.substring(0, 200) + "..."
                                   : change.before}
@@ -721,7 +721,7 @@ function IterationCard({
                             </div>
                             <div>
                               <span className="text-emerald-500 font-medium">+ After:</span>
-                              <pre className="mt-1 p-2 bg-emerald-50 rounded text-gray-700 overflow-x-auto whitespace-pre-wrap">
+                              <pre className="mt-1 p-2 bg-emerald-50 rounded-sm text-gray-700 overflow-x-auto whitespace-pre-wrap">
                                 {change.after.length > 200
                                   ? change.after.substring(0, 200) + "..."
                                   : change.after}

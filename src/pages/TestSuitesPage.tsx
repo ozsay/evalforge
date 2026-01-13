@@ -220,7 +220,7 @@ export function TestSuitesPage() {
                         )}
                       </button>
 
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center shrink-0">
                         <FolderKanban className="w-5 h-5 text-white" />
                       </div>
 
@@ -319,7 +319,7 @@ export function TestSuitesPage() {
                                 key={scenario.id}
                                 className="flex items-center gap-3 p-3 bg-white rounded-lg border"
                               >
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                                <div className="w-8 h-8 rounded-lg bg-linear-to-br from-teal-400 to-cyan-500 flex items-center justify-center shrink-0">
                                   <TestTube2 className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -451,7 +451,7 @@ export function TestSuitesPage() {
                       >
                         <div
                           className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
+                            "w-5 h-5 rounded-sm border-2 flex items-center justify-center transition-colors",
                             selectedScenarioIds.includes(scenario.id)
                               ? "bg-violet-600 border-violet-600"
                               : "border-gray-300"
@@ -502,7 +502,7 @@ export function TestSuitesPage() {
                       >
                         <div
                           className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
+                            "w-5 h-5 rounded-sm border-2 flex items-center justify-center transition-colors",
                             selectedScenarioIds.includes(scenario.id)
                               ? "bg-violet-600 border-violet-600"
                               : "border-gray-300"

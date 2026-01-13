@@ -60,7 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={onClick}
         className={cn(
           "inline-flex items-center justify-center font-medium rounded-lg transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+          "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
           "disabled:opacity-50 disabled:pointer-events-none",
           variants[variant],
           sizes[size],

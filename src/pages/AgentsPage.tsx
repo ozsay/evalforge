@@ -379,7 +379,7 @@ export function AgentsPage() {
                     });
                   }
                 }}
-                className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="w-4 h-4 rounded-sm border-gray-300 text-primary-600 focus:ring-primary-500"
               />
               <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Settings2 className="w-4 h-4" />
@@ -501,12 +501,12 @@ function AgentCard({
             {/* Icon */}
             <div
               className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
                 agent.isDefault
-                  ? "bg-gradient-to-br from-primary-400 to-violet-600"
+                  ? "bg-linear-to-br from-primary-400 to-violet-600"
                   : agent.isBuiltIn
-                  ? "bg-gradient-to-br from-emerald-400 to-teal-600"
-                  : "bg-gradient-to-br from-gray-400 to-gray-600"
+                  ? "bg-linear-to-br from-emerald-400 to-teal-600"
+                  : "bg-linear-to-br from-gray-400 to-gray-600"
               )}
             >
               <IconComponent className="w-6 h-6 text-white" />
@@ -536,7 +536,7 @@ function AgentCard({
               {/* CLI Command */}
               <div className="flex items-center gap-2 text-sm">
                 <Terminal className="w-4 h-4 text-gray-400" />
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-700 truncate max-w-[200px]">
+                <code className="text-xs bg-gray-100 px-2 py-1 rounded-sm font-mono text-gray-700 truncate max-w-[200px]">
                   {fullCommand}
                 </code>
               </div>

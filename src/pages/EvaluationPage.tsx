@@ -422,7 +422,7 @@ export function EvaluationPage() {
                             type="checkbox"
                             checked={selectedScenarioIds.includes(scenario.id)}
                             onChange={() => toggleScenarioSelection(scenario.id)}
-                            className="rounded text-primary-600"
+                            className="rounded-sm text-primary-600"
                           />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">
@@ -463,7 +463,7 @@ export function EvaluationPage() {
                   type="checkbox"
                   checked={useModelOverride}
                   onChange={(e) => setUseModelOverride(e.target.checked)}
-                  className="rounded text-orange-600"
+                  className="rounded-sm text-orange-600"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">
@@ -556,7 +556,7 @@ export function EvaluationPage() {
                       type="checkbox"
                       checked={selectedAgentIds.includes(agent.id)}
                       onChange={() => toggleAgentSelection(agent.id)}
-                      className="rounded text-rose-600 mt-0.5"
+                      className="rounded-sm text-rose-600 mt-0.5"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -575,7 +575,7 @@ export function EvaluationPage() {
                         {agent.capabilities.slice(0, 3).map((cap, i) => (
                           <span
                             key={i}
-                            className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"
+                            className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-sm"
                           >
                             {cap}
                           </span>

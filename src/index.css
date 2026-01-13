@@ -1,6 +1,154 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-primary-50: #f0f4ff;
+  --color-primary-100: #e0e9ff;
+  --color-primary-200: #c7d7fe;
+  --color-primary-300: #a4bcfd;
+  --color-primary-400: #8098f9;
+  --color-primary-500: #6172f3;
+  --color-primary-600: #444ce7;
+  --color-primary-700: #3538cd;
+  --color-primary-800: #2d31a6;
+  --color-primary-900: #2d3282;
+
+  --color-gray-25: #fcfcfd;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f2f4f7;
+  --color-gray-200: #eaecf0;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-800: #182230;
+  --color-gray-900: #101828;
+
+  --color-success-50: #ecfdf3;
+  --color-success-500: #12b76a;
+  --color-success-700: #027a48;
+
+  --color-warning-50: #fffaeb;
+  --color-warning-500: #f79009;
+  --color-warning-700: #b54708;
+
+  --color-error-50: #fef3f2;
+  --color-error-500: #f04438;
+  --color-error-700: #b42318;
+
+  --font-sans:
+    Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+  --font-mono: JetBrains Mono, Fira Code, monospace;
+
+  --shadow-xs: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm:
+    0px 1px 3px rgba(16, 24, 40, 0.1), 0px 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md:
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+    0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+    0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-xl:
+    0px 20px 24px -4px rgba(16, 24, 40, 0.08),
+    0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+
+  --radius-4xl: 2rem;
+
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
+  --animate-shimmer: shimmer 2s linear infinite;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-300) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-gray-300);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-gray-400);
+  }
+}
+
+@utility gradient-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-100) 0%,
+    var(--color-gray-50) 50%,
+    var(--color-gray-100) 100%
+  );
+  background-size: 200% 100%;
+}
 
 @layer base {
   * {
@@ -13,44 +161,7 @@
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
-  }
-}
-
-@layer components {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: theme("colors.gray.300") transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: theme("colors.gray.300");
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: theme("colors.gray.400");
-  }
-}
-
-@layer utilities {
-  .gradient-shimmer {
-    background: linear-gradient(
-      90deg,
-      theme("colors.gray.100") 0%,
-      theme("colors.gray.50") 50%,
-      theme("colors.gray.100") 100%
-    );
-    background-size: 200% 100%;
+    @apply outline-hidden ring-2 ring-primary-500 ring-offset-2;
   }
 }
 

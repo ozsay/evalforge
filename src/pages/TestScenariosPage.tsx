@@ -465,7 +465,7 @@ export function TestScenariosPage() {
                       )}
                     </button>
 
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-linear-to-br from-teal-400 to-cyan-500 flex items-center justify-center shrink-0">
                       <TestTube2 className="w-5 h-5 text-white" />
                     </div>
 
@@ -518,7 +518,7 @@ export function TestScenariosPage() {
                             <div
                               key={assertion.id}
                               className={cn(
-                                "w-6 h-6 rounded flex items-center justify-center",
+                                "w-6 h-6 rounded-sm flex items-center justify-center",
                                 config?.color || "bg-gray-400"
                               )}
                               title={config?.label}
@@ -853,7 +853,7 @@ export function TestScenariosPage() {
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded flex items-center justify-center",
+                        "w-6 h-6 rounded-sm flex items-center justify-center",
                         type.color
                       )}
                     >
@@ -1024,7 +1024,7 @@ function FilePresenceFields({
           type="checkbox"
           checked={assertion.shouldExist}
           onChange={(e) => onChange({ shouldExist: e.target.checked })}
-          className="rounded"
+          className="rounded-sm"
         />
         <span className="text-sm">Files should exist</span>
       </label>
@@ -1129,7 +1129,7 @@ function BuildCheckFields({
             type="checkbox"
             checked={assertion.expectSuccess}
             onChange={(e) => onChange({ expectSuccess: e.target.checked })}
-            className="rounded"
+            className="rounded-sm"
           />
           <span className="text-sm">Expect build to succeed</span>
         </label>
@@ -1225,7 +1225,7 @@ function PlaywrightNLFields({
           {assertion.steps.map((step, i) => (
             <li
               key={i}
-              className="flex items-center gap-2 text-sm text-gray-700 bg-white p-2 rounded border"
+              className="flex items-center gap-2 text-sm text-gray-700 bg-white p-2 rounded-sm border"
             >
               <span className="text-gray-400">{i + 1}.</span>
               <span className="flex-1">{step}</span>

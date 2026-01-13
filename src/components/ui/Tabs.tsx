@@ -90,7 +90,7 @@ export function TabsTrigger({
       onClick={() => setActiveTab(value)}
       className={cn(
         "relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500",
         isActive ? "text-gray-900" : "text-gray-600 hover:text-gray-900",
         disabled && "opacity-50 cursor-not-allowed",
         className

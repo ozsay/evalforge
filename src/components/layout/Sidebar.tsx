@@ -224,7 +224,7 @@ export function Sidebar() {
           to="/projects" 
           className="flex items-center gap-3 group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-md shadow-violet-500/20 group-hover:shadow-lg group-hover:shadow-violet-500/30 transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-md shadow-violet-500/20 group-hover:shadow-lg group-hover:shadow-violet-500/30 transition-shadow">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div>
