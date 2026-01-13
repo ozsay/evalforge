@@ -666,8 +666,6 @@ function RunCard({
   // Get metrics for trend comparison
   const currentCost = run.llmTraceSummary?.totalCostUsd || 0;
   const prevCost = previousRun?.llmTraceSummary?.totalCostUsd || 0;
-  const currentDuration = run.aggregateMetrics.totalDuration;
-  const prevDuration = previousRun?.aggregateMetrics.totalDuration || 0;
   const hasPrevious = previousRun && previousRun.status === "completed";
 
   return (
