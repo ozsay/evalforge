@@ -86,7 +86,7 @@ export function ResultsPage() {
   // Get completed runs for charts
   const completedRuns = filteredRuns.filter((r) => r.status === "completed");
 
-  // Prepare trend data
+  // Prepare trend data with cost and duration
   const trendData = useMemo(() => {
     return completedRuns
       .slice(-20)
@@ -96,10 +96,41 @@ export function ResultsPage() {
         passed: run.aggregateMetrics.passed,
         failed: run.aggregateMetrics.failed,
         total: run.aggregateMetrics.totalAssertions,
+        cost: run.llmTraceSummary?.totalCostUsd || 0,
+        duration: run.aggregateMetrics.totalDuration / 1000, // in seconds
         runId: run.id,
+        skillName: run.skillName,
       }))
       .reverse();
   }, [completedRuns]);
+
+  // Calculate trend summary (comparing recent vs older runs)
+  const trendSummary = useMemo(() => {
+    if (trendData.length < 2) return null;
+    
+    const midpoint = Math.floor(trendData.length / 2);
+    const olderRuns = trendData.slice(0, midpoint);
+    const recentRuns = trendData.slice(midpoint);
+    
+    const avgOld = {
+      passRate: olderRuns.reduce((a, b) => a + b.passRate, 0) / olderRuns.length,
+      cost: olderRuns.reduce((a, b) => a + b.cost, 0) / olderRuns.length,
+      duration: olderRuns.reduce((a, b) => a + b.duration, 0) / olderRuns.length,
+    };
+    
+    const avgRecent = {
+      passRate: recentRuns.reduce((a, b) => a + b.passRate, 0) / recentRuns.length,
+      cost: recentRuns.reduce((a, b) => a + b.cost, 0) / recentRuns.length,
+      duration: recentRuns.reduce((a, b) => a + b.duration, 0) / recentRuns.length,
+    };
+    
+    return {
+      passRate: { current: avgRecent.passRate, previous: avgOld.passRate },
+      cost: { current: avgRecent.cost, previous: avgOld.cost },
+      duration: { current: avgRecent.duration, previous: avgOld.duration },
+      runsCompared: { recent: recentRuns.length, older: olderRuns.length },
+    };
+  }, [trendData]);
 
   // Comparison data for selected runs
   const comparisonData = useMemo(() => {
@@ -376,100 +407,228 @@ export function ResultsPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {/* Pass Rate Trend */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pass Rate Over Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={trendData}>
-                          <defs>
-                            <linearGradient id="passRateGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 12 }}
-                            stroke="#9CA3AF"
-                          />
-                          <YAxis
-                            domain={[0, 100]}
-                            tick={{ fontSize: 12 }}
-                            stroke="#9CA3AF"
-                            tickFormatter={(v) => `${v}%`}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#fff",
-                              border: "1px solid #E5E7EB",
-                              borderRadius: "8px",
-                            }}
-                            formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Pass Rate"]}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="passRate"
-                            stroke="#6366F1"
-                            strokeWidth={2}
-                            fill="url(#passRateGradient)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="space-y-6">
+                {/* Trend Summary Cards */}
+                {trendSummary && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <TrendSummaryCard
+                      label="Pass Rate"
+                      current={trendSummary.passRate.current}
+                      previous={trendSummary.passRate.previous}
+                      format="percent"
+                      colorByValue
+                    />
+                    <TrendSummaryCard
+                      label="Avg Cost"
+                      current={trendSummary.cost.current}
+                      previous={trendSummary.cost.previous}
+                      format="currency"
+                      inverse
+                    />
+                    <TrendSummaryCard
+                      label="Avg Duration"
+                      current={trendSummary.duration.current}
+                      previous={trendSummary.duration.previous}
+                      format="duration"
+                      inverse
+                    />
+                  </div>
+                )}
 
-                {/* Pass/Fail Trend */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Assertions Over Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trendData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                          <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 12 }}
-                            stroke="#9CA3AF"
-                          />
-                          <YAxis tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#fff",
-                              border: "1px solid #E5E7EB",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="passed"
-                            stroke="#10B981"
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            name="Passed"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="failed"
-                            stroke="#EF4444"
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            name="Failed"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Charts Grid */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Pass Rate Trend */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Pass Rate Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={trendData}>
+                            <defs>
+                              <linearGradient id="passRateGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis
+                              dataKey="name"
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                            />
+                            <YAxis
+                              domain={[0, 100]}
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                              tickFormatter={(v) => `${v}%`}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #E5E7EB",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                              }}
+                              formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Pass Rate"]}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="passRate"
+                              stroke="#10B981"
+                              strokeWidth={2}
+                              fill="url(#passRateGradient)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cost Trend */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Cost Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={trendData}>
+                            <defs>
+                              <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis
+                              dataKey="name"
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                            />
+                            <YAxis
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                              tickFormatter={(v) => `$${v.toFixed(2)}`}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #E5E7EB",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                              }}
+                              formatter={(value) => [`$${Number(value ?? 0).toFixed(3)}`, "Cost"]}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="cost"
+                              stroke="#F59E0B"
+                              strokeWidth={2}
+                              fill="url(#costGradient)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Duration Trend */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Duration Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={trendData}>
+                            <defs>
+                              <linearGradient id="durationGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis
+                              dataKey="name"
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                            />
+                            <YAxis
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                              tickFormatter={(v) => `${v}s`}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #E5E7EB",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                              }}
+                              formatter={(value) => [`${Number(value ?? 0).toFixed(1)}s`, "Duration"]}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="duration"
+                              stroke="#6366F1"
+                              strokeWidth={2}
+                              fill="url(#durationGradient)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Pass/Fail Trend */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Assertions Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={trendData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                            <XAxis
+                              dataKey="name"
+                              tick={{ fontSize: 11 }}
+                              stroke="#9CA3AF"
+                            />
+                            <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "#fff",
+                                border: "1px solid #E5E7EB",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                              }}
+                            />
+                            <Legend wrapperStyle={{ fontSize: "12px" }} />
+                            <Line
+                              type="monotone"
+                              dataKey="passed"
+                              stroke="#10B981"
+                              strokeWidth={2}
+                              dot={{ r: 3 }}
+                              name="Passed"
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="failed"
+                              stroke="#EF4444"
+                              strokeWidth={2}
+                              dot={{ r: 3 }}
+                              name="Failed"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
           </TabsContent>
@@ -527,6 +686,97 @@ function SummaryCard({
           {value}
         </p>
         <p className="text-xs text-gray-400 mt-1">{subValue}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Trend Summary Card with vertical trend indicator
+function TrendSummaryCard({
+  label,
+  current,
+  previous,
+  format,
+  inverse = false,
+  colorByValue = false,
+}: {
+  label: string;
+  current: number;
+  previous: number;
+  format: "percent" | "currency" | "duration";
+  inverse?: boolean;
+  colorByValue?: boolean;
+}) {
+  const delta = current - previous;
+  const percentChange = previous !== 0 ? ((delta / previous) * 100) : 0;
+  const absChange = Math.abs(percentChange);
+  
+  const isImprovement = inverse ? delta < 0 : delta > 0;
+  const isRegression = inverse ? delta > 0 : delta < 0;
+  const isSignificant = absChange >= 3;
+  const showImprovement = isImprovement && isSignificant;
+  const showRegression = isRegression && isSignificant;
+  
+  // Format values
+  const formatValue = (val: number) => {
+    switch (format) {
+      case "percent": return `${val.toFixed(0)}%`;
+      case "currency": return `$${val.toFixed(2)}`;
+      case "duration": return `${val.toFixed(1)}s`;
+    }
+  };
+  
+  const trendText = `${percentChange > 0 ? "+" : ""}${percentChange.toFixed(0)}%`;
+  
+  const getValueColor = () => {
+    if (!colorByValue) return "text-gray-900";
+    if (current >= 80) return "text-success-600";
+    if (current >= 50) return "text-warning-600";
+    return "text-error-600";
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-sm text-gray-500 mb-2">{label}</p>
+        <div className="flex items-center justify-between">
+          <div className="grid grid-rows-[16px_auto_16px] items-center">
+            {/* Improvement above */}
+            <div className="h-[16px] flex items-center">
+              {showImprovement && (
+                <div className="text-xs font-semibold text-success-500 flex items-center gap-0.5">
+                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 2L10 7H2L6 2Z" fill="currentColor" />
+                  </svg>
+                  {trendText}
+                </div>
+              )}
+            </div>
+            
+            {/* Current value */}
+            <span className={cn("text-2xl font-bold leading-none", getValueColor())}>
+              {formatValue(current)}
+            </span>
+            
+            {/* Regression below */}
+            <div className="h-[16px] flex items-center">
+              {showRegression && (
+                <div className="text-xs font-semibold text-error-500 flex items-center gap-0.5">
+                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 10L2 5H10L6 10Z" fill="currentColor" />
+                  </svg>
+                  {trendText}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Previous value for reference */}
+          <div className="text-right">
+            <p className="text-xs text-gray-400">was</p>
+            <p className="text-sm text-gray-500">{formatValue(previous)}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
