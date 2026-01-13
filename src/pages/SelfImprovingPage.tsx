@@ -236,7 +236,7 @@ function StartView() {
           ) : (
             <div className="space-y-3">
               {improvementRuns.map((run) => (
-                <RunCard key={run.id} run={run} onClick={() => navigate(`/self-improving/${run.id}`)} />
+                <RunCard key={run.id} run={run} onClick={() => navigate(`/${projectId}/self-improving/${run.id}`)} />
               ))}
             </div>
           )}
