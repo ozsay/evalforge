@@ -540,7 +540,7 @@ export function TestScenariosPage() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/evaluation?scenarioId=${scenario.id}`);
+                            navigate(`/${projectId}/evaluation?scenarioId=${scenario.id}`);
                           }}
                         >
                           <Play className="w-4 h-4 mr-1" />

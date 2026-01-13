@@ -21,6 +21,8 @@ import {
   DEMO_PROJECTS,
   DEMO_AGENTS,
   DEMO_CODING_TOOLS,
+  WIX_APP_BUILDER_PROJECT_ID,
+  WIX_CHAT_PROJECT_ID,
 } from "./shared";
 
 // Import Wix App Builder project data
@@ -31,6 +33,7 @@ import {
   WIX_TARGET_GROUPS,
   WIX_PROMPT_AGENTS,
   WIX_IMPROVEMENT_RUNS,
+  WIX_APP_BUILDER_AGENT,
 } from "./wixDashboard";
 
 // Import Wix Chat project data
@@ -81,6 +84,39 @@ const ALL_IMPROVEMENT_RUNS: ImprovementRun[] = [
   ...WIX_CHAT_IMPROVEMENT_RUNS,
 ];
 
+// Agent-to-project mapping (for filtering)
+// Built-in agents are available in all projects
+// Custom agents are project-specific
+const AGENT_PROJECT_MAP: Record<string, string | null> = {
+  "agent-wix-app-builder": WIX_APP_BUILDER_PROJECT_ID,
+  // Built-in agents have null (available in all projects)
+};
+
+// Combine agents: built-in agents + Wix App Builder (project-specific)
+const ALL_AGENTS: Agent[] = [
+  ...DEMO_AGENTS, // Built-in agents only
+  WIX_APP_BUILDER_AGENT, // Wix App Builder agent
+];
+
+// Helper to filter agents by project
+export function getAgentsForProject(projectId: string | undefined): Agent[] {
+  if (!projectId) return ALL_AGENTS;
+  
+  // Wix Chat should have no coding agents (only prompt agents)
+  if (projectId === WIX_CHAT_PROJECT_ID) return [];
+  
+  return ALL_AGENTS.filter((agent) => {
+    // Built-in agents are available in all projects (except Wix Chat, handled above)
+    if (agent.isBuiltIn) return true;
+    
+    // Check if agent is project-specific
+    const agentProjectId = AGENT_PROJECT_MAP[agent.id];
+    // If in map, only show if it matches the current project
+    // If not in map, exclude it (shouldn't happen, but safety check)
+    return agentProjectId !== undefined && agentProjectId === projectId;
+  });
+}
+
 // ==========================================
 // Export Demo Data Generator
 // ==========================================
@@ -105,7 +141,7 @@ export function generateDemoData(): {
     targetGroups: ALL_TARGET_GROUPS,
     promptAgents: ALL_PROMPT_AGENTS,
     evalRuns: generateEvalRuns(ALL_SKILLS, ALL_SCENARIOS),
-    agents: DEMO_AGENTS,
+    agents: ALL_AGENTS,
     codingTools: DEMO_CODING_TOOLS,
     improvementRuns: ALL_IMPROVEMENT_RUNS,
   };

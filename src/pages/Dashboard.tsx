@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/Card";
 import { Badge } from "@components/ui/Badge";
 import { Button } from "@components/ui/Button";
 import { useStats, useRecentEvalRuns, useSkills, useTestScenarios, useTargetGroups } from "@lib/store";
+import { useTenantUrl } from "@lib/context";
 import { formatRelativeTime, cn } from "@lib/utils";
 import {
   LineChart,
@@ -40,6 +41,7 @@ const item = {
 };
 
 export function Dashboard() {
+  const tenantUrl = useTenantUrl();
   const stats = useStats();
   const recentRuns = useRecentEvalRuns(5);
   const skills = useSkills();
@@ -77,7 +79,7 @@ export function Dashboard() {
             value={targetGroups.length}
             subLabel={`${stats.totalSkills} skills, ${targetGroups.reduce((acc, tg) => acc + tg.targets.length, 0)} targets`}
             color="violet"
-            to="/target-groups"
+            to={tenantUrl("/target-groups")}
           />
           <StatCard
             icon={TestTube2}
@@ -85,7 +87,7 @@ export function Dashboard() {
             value={stats.totalScenarios}
             subLabel={`${stats.totalAssertions} assertions`}
             color="teal"
-            to="/scenarios"
+            to={tenantUrl("/scenarios")}
           />
           <StatCard
             icon={Play}
@@ -93,7 +95,7 @@ export function Dashboard() {
             value={stats.totalEvalRuns}
             subLabel={`${stats.completedRuns} completed`}
             color="orange"
-            to="/evaluation"
+            to={tenantUrl("/evaluation")}
           />
           <StatCard
             icon={TrendingUp}
@@ -102,7 +104,7 @@ export function Dashboard() {
             subLabel="Across all runs"
             color="emerald"
             highlight
-            to="/results"
+            to={tenantUrl("/results")}
           />
         </motion.div>
 
@@ -117,7 +119,7 @@ export function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4">
-                    <Link to="/skills">
+                    <Link to={tenantUrl("/skills")}>
                       <motion.div
                         whileHover={{ y: -2 }}
                         className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-100 border border-violet-200 cursor-pointer group"
@@ -135,7 +137,7 @@ export function Dashboard() {
                       </motion.div>
                     </Link>
 
-                    <Link to="/scenarios">
+                    <Link to={tenantUrl("/scenarios")}>
                       <motion.div
                         whileHover={{ y: -2 }}
                         className="p-4 rounded-xl bg-gradient-to-br from-teal-50 to-cyan-100 border border-teal-200 cursor-pointer group"
@@ -153,7 +155,7 @@ export function Dashboard() {
                       </motion.div>
                     </Link>
 
-                    <Link to="/evaluation">
+                    <Link to={tenantUrl("/evaluation")}>
                       <motion.div
                         whileHover={{ y: -2 }}
                         className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-100 border border-orange-200 cursor-pointer group"
@@ -180,7 +182,7 @@ export function Dashboard() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Recent Evaluations</CardTitle>
-                  <Link to="/results">
+                  <Link to={tenantUrl("/results")}>
                     <Button variant="ghost" size="sm">
                       View All
                       <ArrowRight className="w-4 h-4 ml-1" />
@@ -192,7 +194,7 @@ export function Dashboard() {
                     <div className="text-center py-8 text-gray-500">
                       <Play className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p>No evaluations yet</p>
-                      <Link to="/evaluation">
+                      <Link to={tenantUrl("/evaluation")}>
                         <Button variant="secondary" size="sm" className="mt-3">
                           Run Your First Evaluation
                         </Button>
@@ -318,7 +320,7 @@ export function Dashboard() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">Recent Skills</CardTitle>
-                  <Link to="/skills">
+                  <Link to={tenantUrl("/skills")}>
                     <Button variant="ghost" size="sm">
                       <ArrowRight className="w-4 h-4" />
                     </Button>

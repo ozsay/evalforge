@@ -5,6 +5,7 @@
 
 export {
   generateDemoData,
+  getAgentsForProject,
   WIX_APP_BUILDER_PROJECT_ID,
   WIX_CHAT_PROJECT_ID,
   WIX_DESIGN_SYSTEM_PROJECT_ID,

@@ -153,104 +153,12 @@ export function generateFailureAnalysis(
 }
 
 // ==========================================
-// Built-in Agents (with Wix custom agents)
+// Built-in Agents Only
 // ==========================================
 
 export const DEMO_AGENTS: Agent[] = [
-  // Include built-in agents
+  // Include built-in agents only
   ...BUILTIN_AGENTS,
-
-  // Wix Custom Coding Agents
-  {
-    id: "agent-wix-vibe",
-    type: "custom",
-    name: "Wix Vibe",
-    description: "AI-powered site building agent that creates complete Wix websites and components from natural language descriptions",
-    icon: "globe",
-    runCommand: "npx",
-    runArgs: ["@wix/vibe-cli", "build"],
-    workingDirectory: "./wix-site",
-    templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "site", "framework": "vibe"}' },
-    ],
-    envVars: {
-      WIX_ENV: "development",
-      VIBE_MODE: "interactive",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.4, maxTokens: 8192 },
-    capabilities: [
-      "Full site generation from prompts",
-      "Page layout creation",
-      "Section and widget placement",
-      "Theme and styling application",
-      "Responsive design",
-      "Custom component creation",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "agent-wix-app-builder",
-    type: "custom",
-    name: "Wix App Builder",
-    description: "AI agent for building Wix applications including dashboard apps, widgets, and Blocks components",
-    icon: "layout-dashboard",
-    runCommand: "npx",
-    runArgs: ["@wix/app-builder", "create"],
-    workingDirectory: "./wix-app",
-    templateFiles: [
-      { targetPath: "wix.config.json", content: '{"type": "app"}' },
-      { targetPath: "tsconfig.json", content: '{"compilerOptions": {"jsx": "react-jsx", "strict": true}}' },
-    ],
-    envVars: {
-      WIX_ENV: "development",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
-    capabilities: [
-      "Dashboard page generation",
-      "Widget app creation",
-      "Blocks component development",
-      "Wix Design System integration",
-      "Data management with Wix SDK",
-      "Settings and configuration pages",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "agent-wix-claude-coder",
-    type: "custom",
-    name: "Wix Claude Coder",
-    description: "Claude CLI enhanced with Wix MCP capabilities for coding Wix projects with full platform integration",
-    icon: "terminal",
-    runCommand: "claude",
-    runArgs: ["--mcp", "wix"],
-    workingDirectory: "./wix-project",
-    templateFiles: [
-      { targetPath: ".mcp/wix.json", content: '{"server": "wix-mcp", "capabilities": ["sites", "apps", "data", "auth"]}' },
-    ],
-    envVars: {
-      WIX_ENV: "development",
-      CLAUDE_MCP_ENABLED: "true",
-    },
-    modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 16384 },
-    capabilities: [
-      "Full Wix platform access via MCP",
-      "Site and app development",
-      "Wix Data collections management",
-      "HTTP functions and backend code",
-      "Wix SDK integration",
-      "Live site deployment",
-    ],
-    isBuiltIn: false,
-    isDefault: false,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
 ];
 
 // ==========================================

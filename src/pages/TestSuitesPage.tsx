@@ -262,7 +262,7 @@ export function TestSuitesPage() {
                             e.stopPropagation();
                             // Navigate to evaluation with suite pre-selected
                             const scenarioParam = suite.scenarioIds.join(",");
-                            navigate(`/evaluation?scenarioIds=${scenarioParam}`);
+                            navigate(`/${projectId}/evaluation?scenarioIds=${scenarioParam}`);
                           }}
                         >
                           <Play className="w-4 h-4 mr-1" />
@@ -345,7 +345,7 @@ export function TestSuitesPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => navigate(`/scenarios?highlight=${scenario.id}`)}
+                                  onClick={() => navigate(`/${projectId}/scenarios?highlight=${scenario.id}`)}
                                 >
                                   View
                                 </Button>

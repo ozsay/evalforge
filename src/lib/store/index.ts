@@ -1271,9 +1271,22 @@ export const useImprovementRuns = () => {
   );
 };
 
-// Agents are not project-scoped (shared across projects)
-export const useAgents = () => useStore((state) => state.agents);
-export const useCodingTools = () => useStore((state) => state.agents); // Alias for useAgents
+// Agents filtering by project
+// Built-in agents are available in all projects
+// Custom agents are project-specific
+import { getAgentsForProject } from "@lib/mock/demoData";
+
+export const useAgents = () => {
+  const tenant = useTenantSafe();
+  const allAgents = useStore((state) => state.agents);
+  
+  return useMemo(
+    () => tenant?.projectId ? getAgentsForProject(tenant.projectId) : allAgents,
+    [allAgents, tenant?.projectId]
+  );
+};
+
+export const useCodingTools = () => useAgents(); // Alias for useAgents
 export const useSettings = () => useStore((state) => state.settings);
 
 export const useImprovementRunById = (runId: string) => {

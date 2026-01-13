@@ -10,8 +10,44 @@ import type {
   TargetGroup,
   PromptAgent,
   ImprovementRun,
+  Agent,
 } from "@lib/types";
 import { createSkill, WIX_APP_BUILDER_PROJECT_ID } from "./shared";
+
+// ==========================================
+// Wix App Builder Agent (project-specific)
+// ==========================================
+
+export const WIX_APP_BUILDER_AGENT: Agent = {
+  id: "agent-wix-app-builder",
+  type: "custom",
+  name: "Wix App Builder",
+  description: "AI agent for building Wix applications including dashboard apps, widgets, and Blocks components",
+  icon: "layout-dashboard",
+  runCommand: "npx",
+  runArgs: ["@wix/app-builder", "create"],
+  workingDirectory: "./wix-app",
+  templateFiles: [
+    { targetPath: "wix.config.json", content: '{"type": "app"}' },
+    { targetPath: "tsconfig.json", content: '{"compilerOptions": {"jsx": "react-jsx", "strict": true}}' },
+  ],
+  envVars: {
+    WIX_ENV: "development",
+  },
+  modelConfig: { provider: "anthropic", model: "claude-3-5-sonnet-20241022", temperature: 0.3, maxTokens: 8192 },
+  capabilities: [
+    "Dashboard page generation",
+    "Widget app creation",
+    "Blocks component development",
+    "Wix Design System integration",
+    "Data management with Wix SDK",
+    "Settings and configuration pages",
+  ],
+  isBuiltIn: false,
+  isDefault: false,
+  createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+};
 
 // ==========================================
 // Wix Dashboard Skills
@@ -456,61 +492,6 @@ Follow Wix CLI best practices:
       },
     ],
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "tg-wix-vibe",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Vibe",
-    description: "Wix Vibe AI agent for site and component building",
-    targets: [
-      {
-        id: "target-vibe",
-        type: "coding_agent",
-        agentId: "agent-wix-vibe",
-      },
-    ],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "tg-wix-claude-coder",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Claude Coder",
-    description: "Claude CLI with Wix MCP capabilities for full platform integration",
-    targets: [
-      {
-        id: "target-claude-coder",
-        type: "coding_agent",
-        agentId: "agent-wix-claude-coder",
-      },
-    ],
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 0.25 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "tg-wix-chat",
-    projectId: WIX_APP_BUILDER_PROJECT_ID,
-    name: "Wix Chat",
-    description: "All Wix Chat prompt agent variants with MCP integration",
-    targets: [
-      {
-        id: "target-chat-general",
-        type: "prompt_agent",
-        promptAgentId: "pa-wix-chat-general",
-      },
-      {
-        id: "target-chat-dashboard",
-        type: "prompt_agent",
-        promptAgentId: "pa-wix-chat-dashboard",
-      },
-      {
-        id: "target-chat-backend",
-        type: "prompt_agent",
-        promptAgentId: "pa-wix-chat-backend",
-      },
-    ],
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];

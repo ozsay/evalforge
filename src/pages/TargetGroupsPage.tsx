@@ -31,6 +31,7 @@ import {
   useTargetGroups,
   useSkills,
   useAgents,
+  usePromptAgents,
   useTargetGroupScenarios,
 } from "@lib/store";
 import type {
@@ -43,6 +44,7 @@ import type {
   LLMProvider,
   Skill,
   Agent,
+  PromptAgent,
 } from "@lib/types";
 import { AVAILABLE_MODELS } from "@lib/types";
 import { generateId, formatRelativeTime, cn } from "@lib/utils";
@@ -116,6 +118,7 @@ export function TargetGroupsPage() {
   const targetGroups = useTargetGroups();
   const skills = useSkills();
   const agents = useAgents();
+  const promptAgents = usePromptAgents();
   const {
     addTargetGroup,
     updateTargetGroup,
@@ -241,6 +244,7 @@ export function TargetGroupsPage() {
               group={group}
               skills={skills}
               agents={agents}
+              promptAgents={promptAgents}
               isExpanded={expandedGroup === group.id}
               onToggle={() =>
                 setExpandedGroup(expandedGroup === group.id ? null : group.id)
@@ -249,7 +253,7 @@ export function TargetGroupsPage() {
               onDuplicate={() => duplicateTargetGroup(group.id)}
               onDelete={() => deleteTargetGroup(group.id)}
               onNavigateToScenarios={() =>
-                navigate(`/scenarios?targetGroupId=${group.id}`)
+                navigate(`/${projectId}/scenarios?targetGroupId=${group.id}`)
               }
             />
           ))}
@@ -354,6 +358,7 @@ interface TargetGroupCardProps {
   group: TargetGroup;
   skills: Skill[];
   agents: Agent[];
+  promptAgents: PromptAgent[];
   isExpanded: boolean;
   onToggle: () => void;
   onEdit: () => void;
@@ -366,6 +371,7 @@ function TargetGroupCard({
   group,
   skills,
   agents,
+  promptAgents,
   isExpanded,
   onToggle,
   onEdit,
@@ -389,6 +395,11 @@ function TargetGroupCard({
       case "coding_agent":
         return agents.find((a) => a.id === target.agentId)?.name || "Unknown Agent";
       case "prompt_agent":
+        // Check if it's a reference to an existing prompt agent
+        if (target.promptAgentId) {
+          return promptAgents.find((pa) => pa.id === target.promptAgentId)?.name || "Unknown Prompt Agent";
+        }
+        // Otherwise, use inline config
         return target.promptAgentConfig?.name || "Unnamed Prompt Agent";
     }
   };
