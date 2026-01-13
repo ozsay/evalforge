@@ -463,15 +463,12 @@ export interface TokenUsage {
 //
 // ==========================================
 
-/** Type of LLM interaction step */
+/** Type of LLM interaction step during an agent run */
 export type LLMStepType = 
-  | "text_generation"      // Standard text completion
-  | "tool_call"            // Function/tool invocation
-  | "tool_result"          // Response from tool execution
-  | "analysis"             // Analysis phase (e.g., grading reasoning)
-  | "assertion_check"      // Checking an assertion
-  | "embedding"            // Embedding generation
-  | "vision";              // Image analysis
+  | "completion"           // LLM generates text/code response
+  | "tool_use"             // Agent calls a tool (read_file, write_file, execute, etc.)
+  | "tool_result"          // Result returned from tool execution
+  | "thinking";            // Chain-of-thought/reasoning (if exposed by agent)
 
 /** Single LLM interaction step in the trace */
 export interface LLMTraceStep {

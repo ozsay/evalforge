@@ -820,23 +820,17 @@ function ResultWithTracing({ result }: { result: EvalRun["results"][0] }) {
 // LLM Tracing Table Component
 function LLMTracingTable({ trace }: { trace: NonNullable<EvalRun["results"][0]["llmTrace"]> }) {
   const stepTypeColors: Record<string, string> = {
-    text_generation: "bg-blue-100 text-blue-700",
-    tool_call: "bg-purple-100 text-purple-700",
+    completion: "bg-blue-100 text-blue-700",
+    tool_use: "bg-purple-100 text-purple-700",
     tool_result: "bg-indigo-100 text-indigo-700",
-    analysis: "bg-emerald-100 text-emerald-700",
-    assertion_check: "bg-amber-100 text-amber-700",
-    embedding: "bg-pink-100 text-pink-700",
-    vision: "bg-cyan-100 text-cyan-700",
+    thinking: "bg-amber-100 text-amber-700",
   };
 
   const stepTypeLabels: Record<string, string> = {
-    text_generation: "Text Gen",
-    tool_call: "Tool Call",
+    completion: "Completion",
+    tool_use: "Tool Use",
     tool_result: "Tool Result",
-    analysis: "Analysis",
-    assertion_check: "Assertion",
-    embedding: "Embedding",
-    vision: "Vision",
+    thinking: "Thinking",
   };
 
   return (

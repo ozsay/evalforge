@@ -46,7 +46,7 @@ function calculateCost(tokenUsage: TokenUsage, model: string, provider: LLMProvi
 }
 
 /**
- * Generate a single LLM trace step
+ * Generate a single LLM trace step for an agent run
  */
 function generateLLMTraceStep(
   stepNumber: number,
@@ -55,15 +55,12 @@ function generateLLMTraceStep(
   provider: LLMProvider,
   startTime: Date
 ): LLMTraceStep {
-  // Realistic token ranges based on step type
+  // Realistic token ranges based on step type (agent activity)
   const tokenRanges: Record<LLMStepType, { promptMin: number; promptMax: number; completionMin: number; completionMax: number }> = {
-    text_generation: { promptMin: 500, promptMax: 2000, completionMin: 200, completionMax: 1500 },
-    tool_call: { promptMin: 300, promptMax: 800, completionMin: 50, completionMax: 200 },
-    tool_result: { promptMin: 100, promptMax: 500, completionMin: 100, completionMax: 800 },
-    analysis: { promptMin: 1000, promptMax: 3000, completionMin: 500, completionMax: 2000 },
-    assertion_check: { promptMin: 400, promptMax: 1200, completionMin: 100, completionMax: 500 },
-    embedding: { promptMin: 100, promptMax: 500, completionMin: 0, completionMax: 0 },
-    vision: { promptMin: 1000, promptMax: 5000, completionMin: 200, completionMax: 1000 },
+    completion: { promptMin: 1000, promptMax: 4000, completionMin: 200, completionMax: 2000 },
+    tool_use: { promptMin: 500, promptMax: 1500, completionMin: 50, completionMax: 300 },
+    tool_result: { promptMin: 200, promptMax: 2000, completionMin: 0, completionMax: 0 }, // Tool results don't generate completion tokens
+    thinking: { promptMin: 500, promptMax: 2000, completionMin: 300, completionMax: 1500 },
   };
 
   const range = tokenRanges[type];
@@ -81,30 +78,24 @@ function generateLLMTraceStep(
 
   const costUsd = calculateCost(tokenUsage, model, provider);
 
-  // Tool-specific fields
-  const toolNames = ["read_file", "write_file", "execute_command", "search_codebase", "run_tests", "analyze_output"];
-  const toolName = type === "tool_call" ? toolNames[Math.floor(Math.random() * toolNames.length)] : undefined;
-  const toolArguments = toolName ? JSON.stringify({ path: "/src/example.ts", content: "..." }) : undefined;
+  // Tool-specific fields (for tool_use steps)
+  const toolNames = ["read_file", "write_file", "edit_file", "execute_command", "list_dir", "grep", "bash"];
+  const toolName = type === "tool_use" ? toolNames[Math.floor(Math.random() * toolNames.length)] : undefined;
+  const toolArguments = toolName ? JSON.stringify({ path: "/src/components/Button.tsx", content: "..." }) : undefined;
 
-  // Input/output previews
+  // Input/output previews reflecting agent activity
   const inputPreviews: Record<LLMStepType, string> = {
-    text_generation: "Generate a React component that...",
-    tool_call: `Call ${toolName || "function"} with parameters...`,
-    tool_result: "Function returned: { success: true, ... }",
-    analysis: "Analyze the following code output and determine if...",
-    assertion_check: "Check if the file contains the expected content...",
-    embedding: "Create embedding for: component structure...",
-    vision: "Analyze the screenshot of the rendered UI...",
+    completion: "Create a React Button component with primary and secondary variants...",
+    tool_use: `Using ${toolName || "tool"} to modify the codebase...`,
+    tool_result: `${toolName || "Tool"} executed successfully`,
+    thinking: "Let me analyze the requirements and plan the implementation...",
   };
 
   const outputPreviews: Record<LLMStepType, string> = {
-    text_generation: "Here is the React component implementation...",
-    tool_call: `{ "tool": "${toolName || "function"}", "args": {...} }`,
-    tool_result: "The operation completed successfully with...",
-    analysis: "Based on my analysis, the output shows...",
-    assertion_check: "PASS: The file contains the expected pattern...",
-    embedding: "[0.123, -0.456, 0.789, ...]",
-    vision: "The UI shows a properly rendered button with...",
+    completion: "I'll create a Button component with TypeScript and Tailwind CSS...",
+    tool_use: `{ "tool": "${toolName || "tool"}", "path": "src/components/Button.tsx" }`,
+    tool_result: "File written successfully. Created Button.tsx with 45 lines.",
+    thinking: "I need to: 1) Create the component file, 2) Add types, 3) Export from index...",
   };
 
   const success = Math.random() > 0.05; // 95% success rate
@@ -184,47 +175,48 @@ function generateLLMTraceSummary(steps: LLMTraceStep[]): LLMTraceSummary {
 }
 
 /**
- * Generate a complete LLM trace for a result
+ * Generate a complete LLM trace for an agent run.
+ * Simulates what a coding agent (like Claude Code) does during task execution.
  */
-function generateLLMTrace(model: ModelConfig, numAssertions: number): LLMTrace {
+function generateLLMTrace(model: ModelConfig, _numAssertions: number): LLMTrace {
   const steps: LLMTraceStep[] = [];
   let currentTime = new Date();
   let stepNumber = 1;
 
-  // Step types sequence for a typical evaluation
-  const stepSequence: LLMStepType[] = [
-    "text_generation",  // Initial analysis
-    "tool_call",        // Read files
-    "tool_result",      // File contents
-    "analysis",         // Process content
-  ];
+  // Simulate a realistic coding agent workflow
+  // Number of iterations (agent usually does 2-5 rounds of thinking/editing)
+  const numIterations = Math.floor(Math.random() * 4) + 2;
 
-  // Add initial steps
-  for (const stepType of stepSequence) {
-    const step = generateLLMTraceStep(stepNumber++, stepType, model.model, model.provider, currentTime);
-    steps.push(step);
-    currentTime = new Date(currentTime.getTime() + step.durationMs);
+  for (let i = 0; i < numIterations; i++) {
+    // Thinking step (agent plans what to do)
+    if (Math.random() > 0.3) {
+      const thinkStep = generateLLMTraceStep(stepNumber++, "thinking", model.model, model.provider, currentTime);
+      steps.push(thinkStep);
+      currentTime = new Date(currentTime.getTime() + thinkStep.durationMs);
+    }
+
+    // Completion step (agent generates response/code)
+    const completionStep = generateLLMTraceStep(stepNumber++, "completion", model.model, model.provider, currentTime);
+    steps.push(completionStep);
+    currentTime = new Date(currentTime.getTime() + completionStep.durationMs);
+
+    // Tool use steps (agent reads/writes files, runs commands)
+    const numToolCalls = Math.floor(Math.random() * 3) + 1;
+    for (let j = 0; j < numToolCalls; j++) {
+      // Tool use
+      const toolStep = generateLLMTraceStep(stepNumber++, "tool_use", model.model, model.provider, currentTime);
+      steps.push(toolStep);
+      currentTime = new Date(currentTime.getTime() + toolStep.durationMs);
+
+      // Tool result
+      const resultStep = generateLLMTraceStep(stepNumber++, "tool_result", model.model, model.provider, currentTime);
+      steps.push(resultStep);
+      currentTime = new Date(currentTime.getTime() + resultStep.durationMs);
+    }
   }
 
-  // Add assertion check steps (one per assertion)
-  for (let i = 0; i < numAssertions; i++) {
-    const step = generateLLMTraceStep(stepNumber++, "assertion_check", model.model, model.provider, currentTime);
-    steps.push(step);
-    currentTime = new Date(currentTime.getTime() + step.durationMs);
-  }
-
-  // Occasionally add a tool call for test execution
-  if (Math.random() > 0.5) {
-    const toolStep = generateLLMTraceStep(stepNumber++, "tool_call", model.model, model.provider, currentTime);
-    steps.push(toolStep);
-    currentTime = new Date(currentTime.getTime() + toolStep.durationMs);
-    
-    const resultStep = generateLLMTraceStep(stepNumber++, "tool_result", model.model, model.provider, currentTime);
-    steps.push(resultStep);
-  }
-
-  // Final analysis
-  const finalStep = generateLLMTraceStep(stepNumber, "analysis", model.model, model.provider, currentTime);
+  // Final completion (agent wraps up)
+  const finalStep = generateLLMTraceStep(stepNumber, "completion", model.model, model.provider, currentTime);
   steps.push(finalStep);
 
   return {
