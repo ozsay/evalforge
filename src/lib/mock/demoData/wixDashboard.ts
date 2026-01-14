@@ -11,6 +11,7 @@ import type {
   ImprovementRun,
   Agent,
   EvalRun,
+  FailureAnalysis,
 } from "@lib/types";
 import { createSkill, WIX_APP_BUILDER_PROJECT_ID } from "./shared";
 
@@ -992,6 +993,330 @@ export const WIX_IMPROVEMENT_RUNS: ImprovementRun[] = [
 ];
 
 // ==========================================
+// Hand-Crafted Failure Analyses
+// ==========================================
+
+/**
+ * Failure Analysis 1: Blueprint Generation - Missing Site Widget Extension
+ * The blueprint generator failed to include the Site Widget extension in the app architecture.
+ */
+export const FAILURE_ANALYSIS_BLUEPRINT_MISSING_WIDGET: FailureAnalysis = {
+  category: "wrong_content",
+  severity: "high",
+  summary: "Blueprint missing Site Widget extension - only Dashboard page was generated",
+  details: `The Generate Blueprint skill was asked to create an app with both a Dashboard page and a Site Widget, but the generated blueprint only included the Dashboard page architecture. The Site Widget extension was completely omitted from the architecture.md and components.md files.
+
+This is a critical gap because:
+1. The user explicitly requested a countdown widget for their site
+2. Site Widgets require different extension configuration than Dashboard pages
+3. The widget's settings panel and preview weren't planned`,
+  rootCause: `The GPT-4o model appears to have prioritized the dashboard component and lost context about the widget requirement mid-generation. This is likely due to:
+1. The prompt mentioned "dashboard" first, causing the model to focus on it
+2. Long context window caused the widget requirement to be deprioritized
+3. The model may not have clear examples of multi-extension app blueprints`,
+  suggestedFix: `1. Add explicit section headers in the skill prompt: "## Required Extensions" with checkboxes
+2. Include a validation step that checks all requested app types are present
+3. Consider breaking down multi-extension apps into separate blueprint steps
+4. Add few-shot examples of apps with both Dashboard + Widget extensions`,
+  relatedAssertions: ["bp-1", "bp-2"],
+  codeSnippet: `// Expected in architecture.md:
+## App Extensions
+
+### 1. Dashboard Page
+- Path: src/dashboard/pages/analytics/
+- Purpose: Admin analytics view
+
+### 2. Site Widget  ← MISSING
+- Path: src/site/widgets/countdown/
+- Purpose: Countdown timer widget for site visitors
+- Settings: Target date, styling, completion action`,
+  similarIssues: [
+    "Run eval-blueprint-gpt-2: Also missed secondary extension",
+    "Run eval-blueprint-gemini-1: Similar issue with multi-component apps",
+  ],
+  diff: {
+    path: "blueprints/architecture.md",
+    expected: `# Event Countdown App Architecture
+
+## App Extensions
+
+### 1. Dashboard Page
+Location: src/dashboard/pages/settings/
+Purpose: Configure countdown settings
+
+### 2. Site Widget
+Location: src/site/widgets/countdown/
+Purpose: Display countdown timer on site
+Components:
+  - CountdownDisplay
+  - TimeUnit (days, hours, minutes, seconds)
+  - CompletionMessage
+
+## Data Model
+- CountdownConfig collection
+  - targetDate: DateTime
+  - timezone: String
+  - completionAction: Enum`,
+    actual: `# Event Countdown App Architecture
+
+## App Extensions
+
+### 1. Dashboard Page
+Location: src/dashboard/pages/settings/
+Purpose: Configure countdown settings
+
+## Data Model
+- CountdownConfig collection
+  - targetDate: DateTime
+  - timezone: String`,
+    diffLines: [
+      { type: "unchanged", content: "# Event Countdown App Architecture", lineNumber: 1 },
+      { type: "unchanged", content: "", lineNumber: 2 },
+      { type: "unchanged", content: "## App Extensions", lineNumber: 3 },
+      { type: "unchanged", content: "", lineNumber: 4 },
+      { type: "unchanged", content: "### 1. Dashboard Page", lineNumber: 5 },
+      { type: "unchanged", content: "Location: src/dashboard/pages/settings/", lineNumber: 6 },
+      { type: "unchanged", content: "Purpose: Configure countdown settings", lineNumber: 7 },
+      { type: "unchanged", content: "", lineNumber: 8 },
+      { type: "removed", content: "### 2. Site Widget", lineNumber: 9 },
+      { type: "removed", content: "Location: src/site/widgets/countdown/", lineNumber: 10 },
+      { type: "removed", content: "Purpose: Display countdown timer on site", lineNumber: 11 },
+      { type: "removed", content: "Components:", lineNumber: 12 },
+      { type: "removed", content: "  - CountdownDisplay", lineNumber: 13 },
+      { type: "removed", content: "  - TimeUnit (days, hours, minutes, seconds)", lineNumber: 14 },
+      { type: "removed", content: "  - CompletionMessage", lineNumber: 15 },
+      { type: "removed", content: "", lineNumber: 16 },
+      { type: "unchanged", content: "## Data Model", lineNumber: 17 },
+      { type: "unchanged", content: "- CountdownConfig collection", lineNumber: 18 },
+      { type: "unchanged", content: "  - targetDate: DateTime", lineNumber: 19 },
+      { type: "unchanged", content: "  - timezone: String", lineNumber: 20 },
+      { type: "removed", content: "  - completionAction: Enum", lineNumber: 21 },
+    ],
+  },
+  executionTrace: {
+    commands: [
+      { command: "mkdir -p blueprints", exitCode: 0, duration: 12 },
+      { command: "cat > blueprints/architecture.md", exitCode: 0, duration: 2100 },
+      { command: "cat > blueprints/components.md", exitCode: 0, duration: 1800 },
+    ],
+    filesModified: [
+      { path: "blueprints/architecture.md", action: "created" },
+      { path: "blueprints/components.md", action: "created" },
+    ],
+    apiCalls: [
+      { endpoint: "openai/chat/completions", tokensUsed: 4200, duration: 8500 },
+      { endpoint: "openai/chat/completions", tokensUsed: 3100, duration: 6200 },
+    ],
+    totalDuration: 18612,
+  },
+  patternId: "missing-extension-blueprint",
+};
+
+/**
+ * Failure Analysis 2: Dashboard Page Code Generation - Spec Mismatch
+ * The generated dashboard page doesn't match the specification requirements.
+ */
+export const FAILURE_ANALYSIS_DASHBOARD_SPEC_MISMATCH: FailureAnalysis = {
+  category: "wrong_content",
+  severity: "critical",
+  summary: "Dashboard page missing required stat cards and uses wrong layout structure",
+  details: `The Dashboard Page skill was asked to create an analytics dashboard with specific components:
+- 4 stat cards (visitors, conversion rate, revenue, active users)
+- A line chart for traffic over time
+- A table showing top-performing pages
+
+The generated code is missing:
+1. Two stat cards (active users and conversion rate) - only visitors and revenue were created
+2. The layout uses a single-column structure instead of the required grid layout
+3. The Table component is imported but never rendered
+4. The chart component uses hardcoded data instead of the Wix SDK data fetching pattern`,
+  rootCause: `Analysis of the generation trace suggests multiple issues:
+1. **Context truncation**: The model appears to have truncated the requirements list, only processing the first two stat cards
+2. **Layout pattern mismatch**: The skill examples show single-column layouts, which the model defaulted to
+3. **Incomplete implementation**: The Table was imported in anticipation but the model ran out of context/tokens before implementing it
+4. **Data fetching oversight**: The model used static mock data instead of the specified useQuery pattern with Wix SDK`,
+  suggestedFix: `1. **Explicit component checklist**: Add a checklist section to the skill that forces enumeration:
+   \`\`\`
+   Required Components:
+   - [ ] StatCard: visitors
+   - [ ] StatCard: conversion_rate
+   - [ ] StatCard: revenue  
+   - [ ] StatCard: active_users
+   - [ ] LineChart: traffic
+   - [ ] Table: top_pages
+   \`\`\`
+
+2. **Layout templates**: Include explicit grid layout examples in the skill:
+   \`\`\`tsx
+   <Page.Content>
+     <Box direction="horizontal" gap="24px">
+       {/* Stat cards in grid */}
+     </Box>
+   </Page.Content>
+   \`\`\`
+
+3. **Data fetching patterns**: Require useQuery implementation, not static data
+
+4. **Post-generation validation**: Add an assertion that counts rendered components`,
+  relatedAssertions: ["dash-1", "dash-2"],
+  codeSnippet: `// Generated code (INCORRECT):
+export function AnalyticsPage() {
+  return (
+    <Page>
+      <Page.Header title="Analytics" />
+      <Page.Content>
+        <Card>
+          <StatCard title="Visitors" value="12,453" />
+        </Card>
+        <Card>
+          <StatCard title="Revenue" value="$45,230" />
+        </Card>
+        {/* Missing: conversion rate, active users, chart, table */}
+      </Page.Content>
+    </Page>
+  );
+}
+
+// Expected code:
+export function AnalyticsPage() {
+  const { data } = useQuery(['analytics'], fetchAnalytics);
+  
+  return (
+    <Page>
+      <Page.Header title="Analytics" />
+      <Page.Content>
+        <Box direction="horizontal" gap="24px" wrap="wrap">
+          <StatCard title="Visitors" value={data?.visitors} />
+          <StatCard title="Conversion Rate" value={data?.conversionRate} />
+          <StatCard title="Revenue" value={data?.revenue} />
+          <StatCard title="Active Users" value={data?.activeUsers} />
+        </Box>
+        <Card>
+          <LineChart data={data?.trafficHistory} />
+        </Card>
+        <Card>
+          <Table data={data?.topPages} columns={columns} />
+        </Card>
+      </Page.Content>
+    </Page>
+  );
+}`,
+  similarIssues: [
+    "Run eval-dash-1: Similar layout issues but all components present",
+    "Run eval-dash-settings: Also missed grid layout pattern",
+  ],
+  diff: {
+    path: "src/dashboard/pages/analytics/page.tsx",
+    expected: `import { Page, Card, Box, Table } from '@wix/design-system';
+import { useQuery } from '@tanstack/react-query';
+import { StatCard } from './components/StatCard';
+import { LineChart } from './components/LineChart';
+import { fetchAnalytics } from '../../services/analytics';
+
+export function AnalyticsPage() {
+  const { data, isLoading } = useQuery(['analytics'], fetchAnalytics);
+  
+  if (isLoading) return <Page.Content><Loader /></Page.Content>;
+  
+  return (
+    <Page>
+      <Page.Header title="Analytics Dashboard" />
+      <Page.Content>
+        <Box direction="horizontal" gap="24px">
+          <StatCard title="Total Visitors" value={data.visitors} trend="+12%" />
+          <StatCard title="Conversion Rate" value={data.conversionRate} trend="+3.2%" />
+          <StatCard title="Revenue" value={data.revenue} trend="+18%" />
+          <StatCard title="Active Users" value={data.activeUsers} trend="+5%" />
+        </Box>
+        <Card>
+          <LineChart data={data.trafficHistory} />
+        </Card>
+        <Card>
+          <Table data={data.topPages} columns={pageColumns} />
+        </Card>
+      </Page.Content>
+    </Page>
+  );
+}`,
+    actual: `import { Page, Card, Table } from '@wix/design-system';
+import { StatCard } from './components/StatCard';
+
+export function AnalyticsPage() {
+  return (
+    <Page>
+      <Page.Header title="Analytics" />
+      <Page.Content>
+        <Card>
+          <StatCard title="Visitors" value="12,453" />
+        </Card>
+        <Card>
+          <StatCard title="Revenue" value="$45,230" />
+        </Card>
+      </Page.Content>
+    </Page>
+  );
+}`,
+    diffLines: [
+      { type: "removed", content: "import { Page, Card, Box, Table } from '@wix/design-system';", lineNumber: 1 },
+      { type: "added", content: "import { Page, Card, Table } from '@wix/design-system';", lineNumber: 1 },
+      { type: "removed", content: "import { useQuery } from '@tanstack/react-query';", lineNumber: 2 },
+      { type: "unchanged", content: "import { StatCard } from './components/StatCard';", lineNumber: 3 },
+      { type: "removed", content: "import { LineChart } from './components/LineChart';", lineNumber: 4 },
+      { type: "removed", content: "import { fetchAnalytics } from '../../services/analytics';", lineNumber: 5 },
+      { type: "unchanged", content: "", lineNumber: 6 },
+      { type: "unchanged", content: "export function AnalyticsPage() {", lineNumber: 7 },
+      { type: "removed", content: "  const { data, isLoading } = useQuery(['analytics'], fetchAnalytics);", lineNumber: 8 },
+      { type: "removed", content: "  if (isLoading) return <Page.Content><Loader /></Page.Content>;", lineNumber: 9 },
+      { type: "unchanged", content: "  return (", lineNumber: 10 },
+      { type: "unchanged", content: "    <Page>", lineNumber: 11 },
+      { type: "removed", content: "      <Page.Header title=\"Analytics Dashboard\" />", lineNumber: 12 },
+      { type: "added", content: "      <Page.Header title=\"Analytics\" />", lineNumber: 12 },
+      { type: "unchanged", content: "      <Page.Content>", lineNumber: 13 },
+      { type: "removed", content: "        <Box direction=\"horizontal\" gap=\"24px\">", lineNumber: 14 },
+      { type: "removed", content: "          <StatCard title=\"Total Visitors\" value={data.visitors} trend=\"+12%\" />", lineNumber: 15 },
+      { type: "removed", content: "          <StatCard title=\"Conversion Rate\" value={data.conversionRate} trend=\"+3.2%\" />", lineNumber: 16 },
+      { type: "removed", content: "          <StatCard title=\"Revenue\" value={data.revenue} trend=\"+18%\" />", lineNumber: 17 },
+      { type: "removed", content: "          <StatCard title=\"Active Users\" value={data.activeUsers} trend=\"+5%\" />", lineNumber: 18 },
+      { type: "removed", content: "        </Box>", lineNumber: 19 },
+      { type: "added", content: "        <Card>", lineNumber: 14 },
+      { type: "added", content: "          <StatCard title=\"Visitors\" value=\"12,453\" />", lineNumber: 15 },
+      { type: "added", content: "        </Card>", lineNumber: 16 },
+      { type: "added", content: "        <Card>", lineNumber: 17 },
+      { type: "added", content: "          <StatCard title=\"Revenue\" value=\"$45,230\" />", lineNumber: 18 },
+      { type: "added", content: "        </Card>", lineNumber: 19 },
+      { type: "removed", content: "        <Card><LineChart data={data.trafficHistory} /></Card>", lineNumber: 20 },
+      { type: "removed", content: "        <Card><Table data={data.topPages} columns={pageColumns} /></Card>", lineNumber: 21 },
+      { type: "unchanged", content: "      </Page.Content>", lineNumber: 20 },
+      { type: "unchanged", content: "    </Page>", lineNumber: 21 },
+      { type: "unchanged", content: "  );", lineNumber: 22 },
+      { type: "unchanged", content: "}", lineNumber: 23 },
+    ],
+  },
+  executionTrace: {
+    commands: [
+      { command: "mkdir -p src/dashboard/pages/analytics/components", exitCode: 0, duration: 15 },
+      { command: "cat > src/dashboard/pages/analytics/page.tsx", exitCode: 0, duration: 3200 },
+      { command: "cat > src/dashboard/pages/analytics/page.module.css", exitCode: 0, duration: 890 },
+      { command: "cat > src/dashboard/pages/analytics/components/StatCard.tsx", exitCode: 0, duration: 1200 },
+      { command: "npm run build", exitCode: 0, output: "Build completed with warnings", duration: 12400 },
+    ],
+    filesModified: [
+      { path: "src/dashboard/pages/analytics/page.tsx", action: "created" },
+      { path: "src/dashboard/pages/analytics/page.module.css", action: "created" },
+      { path: "src/dashboard/pages/analytics/components/StatCard.tsx", action: "created" },
+      { path: "src/dashboard/pages/analytics/index.ts", action: "created" },
+    ],
+    apiCalls: [
+      { endpoint: "anthropic/messages", tokensUsed: 6800, duration: 12000 },
+      { endpoint: "anthropic/messages", tokensUsed: 3200, duration: 5500 },
+      { endpoint: "anthropic/messages", tokensUsed: 1800, duration: 3200 },
+    ],
+    totalDuration: 38905,
+  },
+  patternId: "incomplete-component-generation",
+};
+
+// ==========================================
 // Hand-Crafted Eval Runs for Wix App Builder
 // Shows realistic trends: improvements, regressions, cost changes
 // ==========================================
@@ -1100,25 +1425,28 @@ export const WIX_EVAL_RUNS: EvalRun[] = [
   // Story A: Dashboard Page - Score Improvement
   // 65% → 78% → 88% over 14 days, cost stable ~$0.12
   // ==========================================
-  createEvalRun({
-    id: "eval-dash-1",
-    name: "Dashboard Page - Analytics (baseline)",
-    skillId: "skill-wix-dashboard-page",
-    skillName: "Dashboard Page",
-    scenarioId: "scenario-dashboard-analytics",
-    scenarioName: "Analytics Dashboard",
-    daysAgo: 14,
-    passRate: 65,
-    passed: 13,
-    failed: 7,
-    totalDuration: 42000,
-    costUsd: 0.11,
-    totalTokens: 12500,
-    model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
-    agentId: "agent-wix-app-builder",
-    agentName: "Wix App Builder",
-  }),
+  {
+    ...createEvalRun({
+      id: "eval-dash-1",
+      name: "Dashboard Page - Analytics (baseline)",
+      skillId: "skill-wix-dashboard-page",
+      skillName: "Dashboard Page",
+      scenarioId: "scenario-dashboard-analytics",
+      scenarioName: "Analytics Dashboard",
+      daysAgo: 14,
+      passRate: 65,
+      passed: 13,
+      failed: 7,
+      totalDuration: 42000,
+      costUsd: 0.11,
+      totalTokens: 12500,
+      model: "claude-3-5-sonnet-20241022",
+      provider: "anthropic",
+      agentId: "agent-wix-app-builder",
+      agentName: "Wix App Builder",
+    }),
+    failureAnalyses: [FAILURE_ANALYSIS_DASHBOARD_SPEC_MISMATCH],
+  },
   createEvalRun({
     id: "eval-dash-2",
     name: "Dashboard Page - Analytics (improved prompts)",
@@ -1326,26 +1654,29 @@ export const WIX_EVAL_RUNS: EvalRun[] = [
     agentId: "agent-wix-app-builder",
     agentName: "Wix App Builder",
   }),
-  createEvalRun({
-    id: "eval-blueprint-gpt-3",
-    name: "Generate Blueprint - Shift Manager (regression)",
-    skillId: "skill-wix-blueprint-gpt",
-    skillName: "Generate Blueprint - GPT",
-    scenarioId: "scenario-blueprint-shift-manager",
-    scenarioName: "Shift Manager",
-    daysAgo: 1,
-    hoursAgo: 3,
-    passRate: 72,
-    passed: 8,
-    failed: 3,
-    totalDuration: 34000,
-    costUsd: 0.09,
-    totalTokens: 10100,
-    model: "gpt-4o",
-    provider: "openai",
-    agentId: "agent-wix-app-builder",
-    agentName: "Wix App Builder",
-  }),
+  {
+    ...createEvalRun({
+      id: "eval-blueprint-gpt-3",
+      name: "Generate Blueprint - Shift Manager (regression)",
+      skillId: "skill-wix-blueprint-gpt",
+      skillName: "Generate Blueprint - GPT",
+      scenarioId: "scenario-blueprint-shift-manager",
+      scenarioName: "Shift Manager",
+      daysAgo: 1,
+      hoursAgo: 3,
+      passRate: 72,
+      passed: 8,
+      failed: 3,
+      totalDuration: 34000,
+      costUsd: 0.09,
+      totalTokens: 10100,
+      model: "gpt-4o",
+      provider: "openai",
+      agentId: "agent-wix-app-builder",
+      agentName: "Wix App Builder",
+    }),
+    failureAnalyses: [FAILURE_ANALYSIS_BLUEPRINT_MISSING_WIDGET],
+  },
 
   // ==========================================
   // Additional runs for variety
