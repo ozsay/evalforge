@@ -3,17 +3,18 @@
  * Combines all project-specific demo data into a single export
  */
 
-import type {
-  Project,
-  Skill,
-  TestScenario,
-  TestSuite,
-  TargetGroup,
-  PromptAgent,
-  EvalRun,
-  Agent,
-  CodingTool,
-  ImprovementRun,
+import {
+  type Project,
+  type Skill,
+  type TestScenario,
+  type TestSuite,
+  type TargetGroup,
+  type PromptAgent,
+  type EvalRun,
+  type Agent,
+  type CodingTool,
+  type ImprovementRun,
+  BUILTIN_AGENTS,
 } from "@lib/types";
 
 // Import shared data
@@ -96,7 +97,7 @@ export function getAgentsForProject(projectId: string | undefined): Agent[] {
   
   switch (projectId) {
     case WIX_APP_BUILDER_PROJECT_ID:
-      return [WIX_APP_BUILDER_AGENT];
+      return [...BUILTIN_AGENTS,WIX_APP_BUILDER_AGENT];
     case WIX_CHAT_PROJECT_ID:
       return [];
       case WIX_DESIGN_SYSTEM_PROJECT_ID:

@@ -689,6 +689,30 @@ export const WIX_SUITES: TestSuite[] = [
 
 export const WIX_TARGET_GROUPS: TargetGroup[] = [
   {
+    id: "tg-open-source-coders",
+    projectId: WIX_APP_BUILDER_PROJECT_ID,
+    name: "Open Source Coders",
+    description: "Open Source Coders for building Wix applications",
+    targets: [
+      {
+        id: "target-open-source-coder-claude",
+        type: "coding_agent",
+        agentId: "agent-claude-code",
+      },
+      {
+        id: "target-open-source-coder-codex",
+        type: "coding_agent",
+        agentId: "agent-codex",
+      },
+      {
+        id: "target-open-source-coder-cursor",
+        type: "coding_agent",
+        agentId: "agent-cursor-cli",
+      },
+    ],
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+  },  {
     id: "tg-wix-app-builder",
     projectId: WIX_APP_BUILDER_PROJECT_ID,
     name: "Wix App Builder",
