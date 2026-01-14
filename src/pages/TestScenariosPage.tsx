@@ -21,6 +21,13 @@ import {
   Layers,
   Tag,
   X,
+  Download,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  ExternalLink,
+  DollarSign,
+  Clock,
 } from "lucide-react";
 import { PageHeader } from "@components/layout/Header";
 import { Button } from "@components/ui/Button";
@@ -106,6 +113,96 @@ const ASSERTION_TYPES: {
 
 type FilterMode = "all" | "suite" | "targetGroup" | "standalone";
 
+// Discovered scenario from real-world apps
+interface DiscoveredScenario {
+  id: string;
+  name: string;
+  description: string;
+  sourceApp: string;
+  sourceUrl: string;
+  complexity: "simple" | "medium" | "complex";
+  estimatedCost: number;
+  estimatedDuration: number;
+  characteristics: string[];
+  suggestedAssertions: number;
+}
+
+// Mock discovered scenarios
+const MOCK_DISCOVERED_SCENARIOS: DiscoveredScenario[] = [
+  {
+    id: "disc-1",
+    name: "Restaurant Reservation Widget",
+    description: "A booking widget that allows customers to reserve tables, select party size, and choose time slots with real-time availability",
+    sourceApp: "TableBook Pro",
+    sourceUrl: "https://wix.com/app-market/tablebook-pro",
+    complexity: "complex",
+    estimatedCost: 0.15,
+    estimatedDuration: 45,
+    characteristics: ["Real-time data", "Form validation", "Date/time picker", "Multi-step flow"],
+    suggestedAssertions: 8,
+  },
+  {
+    id: "disc-2",
+    name: "Product Reviews Section",
+    description: "Customer review component with star ratings, photo uploads, verified purchase badges, and sorting options",
+    sourceApp: "Reviews Plus",
+    sourceUrl: "https://wix.com/app-market/reviews-plus",
+    complexity: "medium",
+    estimatedCost: 0.08,
+    estimatedDuration: 30,
+    characteristics: ["User-generated content", "Image handling", "Rating aggregation", "Sorting/filtering"],
+    suggestedAssertions: 6,
+  },
+  {
+    id: "disc-3",
+    name: "Live Chat Support Widget",
+    description: "Real-time chat widget with typing indicators, file attachments, and offline message queuing",
+    sourceApp: "ChatNow",
+    sourceUrl: "https://wix.com/app-market/chatnow",
+    complexity: "complex",
+    estimatedCost: 0.18,
+    estimatedDuration: 55,
+    characteristics: ["WebSocket connection", "File uploads", "Notifications", "Presence indicators"],
+    suggestedAssertions: 10,
+  },
+  {
+    id: "disc-4",
+    name: "Appointment Scheduler",
+    description: "Service booking system with staff selection, service duration calculation, and calendar integration",
+    sourceApp: "Wix Bookings",
+    sourceUrl: "https://wix.com/app-market/wix-bookings",
+    complexity: "complex",
+    estimatedCost: 0.12,
+    estimatedDuration: 40,
+    characteristics: ["Calendar integration", "Staff management", "Service catalog", "Payment flow"],
+    suggestedAssertions: 9,
+  },
+  {
+    id: "disc-5",
+    name: "Newsletter Signup Form",
+    description: "Email capture form with custom fields, double opt-in, and integration with email marketing platforms",
+    sourceApp: "MailMaster",
+    sourceUrl: "https://wix.com/app-market/mailmaster",
+    complexity: "simple",
+    estimatedCost: 0.04,
+    estimatedDuration: 15,
+    characteristics: ["Form validation", "Email integration", "Custom fields", "Success states"],
+    suggestedAssertions: 4,
+  },
+  {
+    id: "disc-6",
+    name: "Social Media Feed",
+    description: "Aggregated social feed displaying posts from multiple platforms with lazy loading and filtering",
+    sourceApp: "SocialWall",
+    sourceUrl: "https://wix.com/app-market/socialwall",
+    complexity: "medium",
+    estimatedCost: 0.09,
+    estimatedDuration: 35,
+    characteristics: ["API aggregation", "Infinite scroll", "Content filtering", "Responsive grid"],
+    suggestedAssertions: 7,
+  },
+];
+
 export function TestScenariosPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -133,6 +230,12 @@ export function TestScenariosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScenario, setEditingScenario] = useState<TestScenario | null>(null);
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
+  
+  // Import scenarios modal state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importStep, setImportStep] = useState<"intro" | "fetching" | "results">("intro");
+  const [discoveredScenarios, setDiscoveredScenarios] = useState<DiscoveredScenario[]>([]);
+  const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
 
   // Form state - targetGroupId can be undefined for standalone scenarios
   type FormDataType = {
@@ -342,15 +445,95 @@ export function TestScenariosPage() {
     setAssertions(assertions.filter((_, i) => i !== index));
   };
 
+  // Import scenarios flow
+  const startDiscovery = async () => {
+    setImportStep("fetching");
+    
+    // Simulate fetching and analysis
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    // Set mock discovered scenarios
+    setDiscoveredScenarios(MOCK_DISCOVERED_SCENARIOS);
+    setImportStep("results");
+  };
+
+  const toggleImportSelection = (id: string) => {
+    setSelectedImports(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const importSelectedScenarios = () => {
+    // Import each selected scenario
+    discoveredScenarios
+      .filter(s => selectedImports.has(s.id))
+      .forEach(discovered => {
+        const scenarioInput: CreateTestScenarioInput = {
+          projectId,
+          targetGroupId: filterMode === "targetGroup" && selectedTargetGroupId ? selectedTargetGroupId : undefined,
+          name: discovered.name,
+          description: discovered.description,
+          triggerPrompt: `Create a ${discovered.name.toLowerCase()} component based on the ${discovered.sourceApp} app. ${discovered.description}`,
+          expectedFiles: [
+            { path: `src/components/${discovered.name.replace(/\s+/g, "")}/index.tsx` },
+            { path: `src/components/${discovered.name.replace(/\s+/g, "")}/styles.module.css` },
+          ],
+          assertions: [
+            {
+              id: generateId(),
+              type: "file_presence",
+              name: "Component file exists",
+              paths: [`src/components/${discovered.name.replace(/\s+/g, "")}/index.tsx`],
+              shouldExist: true,
+            } as FilePresenceAssertion,
+            {
+              id: generateId(),
+              type: "build_check",
+              name: "Build passes",
+              command: "npm run build",
+              expectedExitCode: 0,
+              expectSuccess: true,
+            } as BuildCheckAssertion,
+          ],
+          tags: [...discovered.characteristics.slice(0, 3), "imported", discovered.complexity],
+          suiteIds: filterMode === "suite" && selectedSuiteId ? [selectedSuiteId] : [],
+        };
+        
+        addTestScenario(scenarioInput);
+      });
+    
+    setIsImportModalOpen(false);
+  };
+
   return (
     <div className="p-8">
       <PageHeader
         title="Test Scenarios"
         description="Define test cases and assertions for your Target Groups"
         actions={
-          <Button onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
-            New Scenario
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setIsImportModalOpen(true);
+                setImportStep("intro");
+                setDiscoveredScenarios([]);
+                setSelectedImports(new Set());
+              }} 
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              Import Scenarios
+            </Button>
+            <Button onClick={openCreateModal} leftIcon={<Plus className="w-4 h-4" />}>
+              New Scenario
+            </Button>
+          </div>
         }
       />
 
@@ -894,6 +1077,207 @@ export function TestScenariosPage() {
           >
             {editingScenario ? "Update" : "Create"} Scenario
           </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Import Scenarios Modal */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Real-World Scenarios"
+        size="lg"
+      >
+        <ModalBody>
+          {importStep === "intro" && (
+            <div className="space-y-6">
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-violet-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Discover Real-World Scenarios
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  We'll analyze popular Wix apps to find real-world use cases that make great test scenarios.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-5 space-y-4">
+                <h4 className="font-medium text-gray-900">What happens:</h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-violet-600">1</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Fetch Real-World Apps</p>
+                      <p className="text-sm text-gray-500">
+                        Scan the Wix App Market for popular, well-reviewed applications
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-violet-600">2</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Deep Research</p>
+                      <p className="text-sm text-gray-500">
+                        Analyze characteristics, complexity, expected LLM costs, and outcomes
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-violet-600">3</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Generate Scenarios</p>
+                      <p className="text-sm text-gray-500">
+                        Create test scenarios with appropriate assertions and expectations
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {importStep === "fetching" && (
+            <div className="py-12 text-center">
+              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Discovering Scenarios...
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Analyzing real-world apps and generating test scenarios
+              </p>
+              <div className="max-w-xs mx-auto space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <CheckCircle2 className="w-4 h-4 text-success-500" />
+                  <span>Fetching app catalog...</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+                  <span>Analyzing characteristics...</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span>Generating scenarios...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {importStep === "results" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Found <span className="font-semibold text-gray-900">{discoveredScenarios.length}</span> scenarios from real-world apps
+                </p>
+                <button
+                  onClick={() => setSelectedImports(new Set(discoveredScenarios.map(s => s.id)))}
+                  className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                >
+                  Select All
+                </button>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
+                {discoveredScenarios.map((scenario) => (
+                  <div
+                    key={scenario.id}
+                    className={cn(
+                      "p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      selectedImports.has(scenario.id)
+                        ? "border-violet-400 bg-violet-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onClick={() => toggleImportSelection(scenario.id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedImports.has(scenario.id)}
+                        onChange={() => toggleImportSelection(scenario.id)}
+                        className="mt-1 rounded-sm text-violet-600"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-gray-900">{scenario.name}</h4>
+                          <Badge 
+                            variant={
+                              scenario.complexity === "simple" ? "success" :
+                              scenario.complexity === "medium" ? "warning" : "error"
+                            }
+                            size="sm"
+                          >
+                            {scenario.complexity}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{scenario.description}</p>
+                        
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                          <a 
+                            href={scenario.sourceUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-violet-600 hover:text-violet-700"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {scenario.sourceApp}
+                          </a>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            ~${scenario.estimatedCost.toFixed(2)}/run
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            ~{scenario.estimatedDuration}s
+                          </span>
+                          <span>{scenario.suggestedAssertions} assertions</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {scenario.characteristics.map((char, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                            >
+                              {char}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </ModalBody>
+
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setIsImportModalOpen(false)}>
+            Cancel
+          </Button>
+          {importStep === "intro" && (
+            <Button onClick={startDiscovery} leftIcon={<Sparkles className="w-4 h-4" />}>
+              Start Discovery
+            </Button>
+          )}
+          {importStep === "results" && (
+            <Button 
+              onClick={importSelectedScenarios} 
+              disabled={selectedImports.size === 0}
+              leftIcon={<Download className="w-4 h-4" />}
+            >
+              Import {selectedImports.size} Scenario{selectedImports.size !== 1 ? "s" : ""}
+            </Button>
+          )}
         </ModalFooter>
       </Modal>
     </div>
